@@ -39,6 +39,8 @@ ai_config.json
 # Temporary files
 *.tmp
 *.temp
+__pycache__/
+*.py[cod]
 
 /.mozc-build/
 /dist/
