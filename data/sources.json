@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "id": "japanpost_zipcode",
+      "purpose": ["dictionary", "benchmark"],
+      "license": "JapanPost-terms-review-required",
+      "reading_trust": "official",
+      "url": "https://www.post.japanpost.jp/service/search/zipcode/download/",
+      "distribution": "review_required"
+    },
+    {
+      "id": "gsi_place_names",
+      "purpose": ["dictionary", "benchmark"],
+      "license": "PDL-1.0",
+      "reading_trust": "official",
+      "url": "https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html",
+      "distribution": "attribution_required"
+    },
+    {
+      "id": "aozora_public_domain",
+      "purpose": ["training", "benchmark"],
+      "license": "per_work_public_domain_or_explicit_license",
+      "reading_trust": "ruby",
+      "url": "https://www.aozora.gr.jp/guide/kijyunn.html",
+      "distribution": "per_work_review_required"
+    },
+    {
+      "id": "wikidata",
+      "purpose": ["entity_discovery", "benchmark"],
+      "license": "CC0-1.0",
+      "reading_trust": "unverified",
+      "url": "https://www.wikidata.org/wiki/Wikidata:Database_download/ja",
+      "distribution": "allowed"
+    },
+    {
+      "id": "ndla",
+      "purpose": ["entity_discovery", "benchmark"],
+      "license": "attribution_required",
+      "reading_trust": "unverified",
+      "url": "https://id.ndl.go.jp/information/use/",
+      "distribution": "attribution_required"
+    }
+  ]
+}

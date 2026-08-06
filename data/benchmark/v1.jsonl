@@ -1,0 +1,5 @@
+{"category":"address","context":[],"expected_action":"dictionary","gold":"東京都千代田区","key":"とうきょうとちよだく","source_id":"fixture"}
+{"category":"geographic_name","context":[],"expected_action":"dictionary","gold":"筑波山","key":"つくばさん","source_id":"fixture"}
+{"category":"technical_term","context":["患者に"],"expected_action":"dictionary","gold":"人工呼吸器","key":"じんこうこきゅうき","source_id":"fixture"}
+{"category":"homophone","context":["昨日は晴れだった"],"expected_action":"abstain","gold":"今日","key":"きょう","source_id":"fixture"}
+{"category":"compound","context":["明日の"],"expected_action":"generation","gold":"予定を確認する","key":"よていをかくにんする","source_id":"fixture"}

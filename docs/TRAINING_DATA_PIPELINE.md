@@ -645,4 +645,23 @@ train_mixed.jsonl 1行（行7のみ）
 
 ここまで動けば、あとはシャード並列でスケールするだけ。
 
+---
+
+## 初期実装（2026-08-06）
+
+`tools/dataset/` に、標準ライブラリだけで動く初期パイプラインを追加した。
+
+```bash
+python -m unittest discover -s tools/dataset/tests -v
+python -m tools.dataset.main japanpost --download --archive data/raw/japanpost/ken_all.zip --out data/interim/japanpost_terms.jsonl
+python -m tools.dataset.main classify --input samples_with_candidates.jsonl --out comparisons.jsonl
+python -m tools.dataset.main deepseek-review --input comparisons.jsonl --out review.jsonl --model <model> --input-price-per-million <price> --output-price-per-million <price>
+```
+
+`deepseek-review` は既定で dry run であり、API 呼び出しには `--execute` が必要。入力は公開ソースに限定し、行ごとの出典・利用条件・取得日時を保持する。日本郵便データは利用条件を確認してから再配布物へ含める。
+
+最初の全国郵便番号データ変換では、都道府県・市区町村・町域・市区町村+町域を別の IME 入力単位として生成する。町域のプレースホルダー、範囲指定、非かなの読みは除外する。
+
+`//converter:converter_main` は本番バッチ候補取得の参考実装として調査済みだが、現在の Windows SDK と clang の組合せではテスト専用ターゲットが Abseil の `offsetof` コンパイルエラーで失敗する。専用 `mozc_batch` は、AI rewriter を登録しない本番構成の C++ バイナリとして別途追加する。
+
 関連: [AI_BACKEND_STRATEGY.md](./AI_BACKEND_STRATEGY.md), [JAPANESE_MODELS.md](./JAPANESE_MODELS.md)

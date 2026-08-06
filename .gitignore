@@ -39,3 +39,10 @@ ai_config.json
 # Temporary files
 *.tmp
 *.temp
+
+/.mozc-build/
+/dist/
+/data/raw/
+/data/interim/
+/data/train/
+/data/review/
