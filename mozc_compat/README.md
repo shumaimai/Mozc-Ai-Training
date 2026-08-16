@@ -1,41 +1,19 @@
-# Mozc Compatibility Layer
+# Mozc compatibility reference
 
-このディレクトリには、google/mozc リポジトリに直接統合するためのファイルが含まれています。
+このディレクトリは、学習・評価とMozc実装のパリティを検証するための参照コードです。
+v1.0.0の正式な統合・MSI作成は
+[Mozc-Ai](https://github.com/shumaimai/Mozc-Ai) の `scripts/integrate_mozc.py` と
+`scripts/package_windows.ps1` を使用してください。
 
-## ファイル一覧
+## 主なファイル
 
-| ファイル | 説明 |
-|---------|------|
-| `ai_rewriter.h` / `ai_rewriter.cc` | 本家 Mozc API 向け AIRewriter 実装 |
-| `ai_rewriter_test.cc` | Mozc 環境向けユニットテスト |
-| `ai/BUILD.bazel` | `mozc/src/ai/BUILD.bazel` 用ビルド定義 |
-| `rewriter_build.bazel.patch` | `rewriter/BUILD.bazel` 追記用スニペット |
+- `mozc_batch.cc`: 公開データ用Mozc N-best候補抽出
+- `context_clip.*`: Python/C++の文脈前処理パリティ
+- `rerank_guard.*`: リランク対象ガード
+- `rerank_rewriter.*`: loopbackデーモンへ接続するMozc Rewriter
+- `rerank_margin.h`: 候補上書きのマージン条件
+- `runtime_smoke_client.cc`: 固定合成入力だけを使うIPCテスト
 
-## 統合方法（推奨）
+旧AIRewriter、Ollama、DeepSeek実行時バックエンドはv1.0.0の現行ツリーから削除しました。
+DeepSeek/OpenAI互換APIは `tools/dataset` の公開データレビューに限って任意利用できます。
 
-```bash
-git clone https://github.com/google/mozc.git
-python3 scripts/integrate_mozc.py --mozc-dir /path/to/mozc/src
-
-cd /path/to/mozc/src
-bazelisk build //ai:all //rewriter:ai_rewriter //server:mozc_server
-bazelisk test //ai:all //rewriter:ai_rewriter_test
-```
-
-Windows:
-
-```powershell
-.\scripts\integrate_mozc.ps1 -MozcDir C:\mozc\src
-```
-
-## スタンドアロン版との違い
-
-| 項目 | スタンドアロン (`src/rewriter/`) | 統合版 (`mozc_compat/`) |
-|------|----------------------------------|-------------------------|
-| インターフェース | モック `rewriter_interface.h` | 本家 `rewriter/rewriter_interface.h` |
-| 候補 API | `set_value()` 等 | `candidate.value` フィールド直接代入 |
-| リクエスト API | `request.request_type` | `request.request_type()` |
-| capability 戻り値 | `NONE` | `NOT_AVAILABLE` |
-| ビルド | `cc_library` | `mozc_cc_library` |
-
-詳細は `docs/MOZC_INTEGRATION.md` を参照してください。

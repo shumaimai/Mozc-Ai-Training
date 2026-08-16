@@ -33,6 +33,14 @@ Thumbs.db
 # User config (may contain API keys)
 ai_config.json
 
+# Local mozc_batch paths (copy from config/mozc_batch.env.example)
+/config/mozc_batch.env
+/config/*.local.env
+
+# Local Mozc engine data cache (large; not source)
+/tools/mozc/*.data
+/tools/mozc/*.tsv
+
 # Test outputs
 /testoutput/
 
@@ -48,3 +56,26 @@ __pycache__/
 /data/interim/
 /data/train/
 /data/review/
+/data/private/
+/artifacts/
+/.venv*/
+/data/rerank/
+/data/rerank_ctx/
+/data/rerank_v2/
+/data/rerank_v3/
+/data/benchmark/lora_holdout_seed42.jsonl
+/scripts/_*
+/scripts/*personal*
+/tools/rerank/_[!_]*.py
+/docs/reranker/reports/PERSONAL_USAGE_*
+
+# Historical one-off operational scripts.  The maintained entry points below
+# remain visible and versioned; already tracked files are unaffected.
+/scripts/*
+!/scripts/modal_*.py
+!/scripts/rocm_*.py
+!/scripts/run_rerank_gpu_train.sh
+!/scripts/run_deepseek_wikidata_batches.ps1
+!/scripts/run_mozc_batch_mode_a.ps1
+!/scripts/cpu_scenario_eval.py
+!/scripts/run_cpu_scenario_eval.sh

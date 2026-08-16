@@ -6,7 +6,8 @@ from typing import Any, Iterable
 
 
 def read_jsonl(path: Path) -> Iterable[dict[str, Any]]:
-    with path.open(encoding="utf-8") as source:
+    # utf-8-sig tolerates PowerShell Set-Content BOM on Windows.
+    with path.open(encoding="utf-8-sig") as source:
         for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
             if not stripped:
@@ -29,3 +30,11 @@ def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> int:
             destination.write("\n")
             count += 1
     return count
+
+
+def append_jsonl(path: Path, row: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as destination:
+        destination.write(json.dumps(row, ensure_ascii=False, sort_keys=True))
+        destination.write("\n")
+

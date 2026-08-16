@@ -1,0 +1,34 @@
+# mozc_batch - add to mozc/src/converter/BUILD.bazel
+#
+# Standalone batch converter. It links the vanilla engine only; it must NOT
+# depend on //rewriter:ai_rewriter, so build it in a Mozc tree that has NOT had
+# the AIRewriter registration patch applied (or keep MOZC_AI_REWRITER undefined
+# for this target).
+#
+# Deps mirror //converter:converter_main of this Mozc revision, minus the
+# test-only pieces (request_test_util, pos_id_printer, mock data). If that
+# target's deps differ in your tree, copy them here.
+
+mozc_cc_binary(
+    name = "mozc_batch",
+    srcs = ["mozc_batch.cc"],
+    deps = [
+        ":converter_interface",
+        ":segments",
+        "//base:file_stream",
+        "//base:init_mozc",
+        "//composer",
+        "//composer:table",
+        "//config:config_handler",
+        "//data_manager",
+        "//engine",
+        "//engine:engine_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+        "//request:conversion_request",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)

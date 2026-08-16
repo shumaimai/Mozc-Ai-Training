@@ -1,0 +1,74 @@
+name: Training source tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile Python sources
+        run: |
+          python -m compileall -q tools scripts/modal_train.py scripts/modal_eval.py \
+            scripts/modal_export_onnx.py scripts/modal_shippable_tau.py \
+            scripts/modal_ctx_cap_sweep.py scripts/modal_clean_eval_trackB.py
+
+      - name: Dataset tests
+        run: python -m unittest discover -s tools/dataset/tests -p "test_*.py" -v
+
+      - name: Reranker tests
+        run: python -m unittest discover -s tools/rerank -p "test_*.py" -v
+
+      - name: Cloud privacy audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from tools.rerank.privacy import ensure_public_modal_paths
+
+          launchers = list(Path("scripts").glob("modal_*.py"))
+          unsafe = []
+          for path in launchers:
+              text = path.read_text(encoding="utf-8")
+              if '.add_local_dir("data/rerank_ctx"' in text:
+                  unsafe.append(str(path))
+          if unsafe:
+              raise SystemExit(f"unsafe Modal data upload roots: {unsafe}")
+
+          for value in (
+              "/artifacts/private/model",
+              "/artifacts/usage30m_v1",
+              "data/rerank_ctx/ime_usage_pairs.jsonl",
+          ):
+              try:
+                  ensure_public_modal_paths(value)
+              except ValueError:
+                  pass
+              else:
+                  raise SystemExit(f"privacy gate accepted: {value}")
+          print("cloud privacy audit passed")
+          PY
+
+      - name: Publish training sources v1.0.0
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Mozc AI Training v1.0.0
+          body_path: docs/RELEASE_NOTES_V1.0.0.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

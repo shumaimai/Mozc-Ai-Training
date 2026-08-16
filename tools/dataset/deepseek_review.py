@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
@@ -72,13 +73,61 @@ def build_request(model: str, row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def execute(model: str, row: dict[str, Any], timeout_seconds: int = 60) -> tuple[dict[str, Any], dict[str, int]]:
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
-    if not api_key:
-        raise RuntimeError("DEEPSEEK_API_KEY is not set")
+def comparison_key(row: dict[str, Any]) -> str:
+    record = row.get("record") or {}
+    provenance = record.get("provenance") or {}
+    return "|".join(
+        [
+            str(provenance.get("source_id", "")),
+            str(record.get("surface", "")),
+            str(record.get("reading", "")),
+            str(row.get("action", "")),
+        ]
+    )
+
+
+def _api_key() -> str:
+    for name in ("DEEPSEEK_API_KEY", "OPENAI_API_KEY", "DASHSCOPE_API_KEY"):
+        value = os.environ.get(name)
+        if value:
+            return value
+    raise RuntimeError("DEEPSEEK_API_KEY (or OPENAI_API_KEY / DASHSCOPE_API_KEY) is not set")
+
+
+def _chat_completions_url() -> str:
+    base = (
+        os.environ.get("DEEPSEEK_BASE_URL")
+        or os.environ.get("OPENAI_BASE_URL")
+        or "https://api.deepseek.com"
+    ).rstrip("/")
+    if base.endswith("/chat/completions"):
+        return base
+    return f"{base}/chat/completions"
+
+
+def _message_content(message: dict[str, Any]) -> str:
+    content = message.get("content")
+    if isinstance(content, str) and content.strip():
+        return content
+    # Some OpenAI-compatible gateways return multipart content blocks.
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text", "")))
+            elif isinstance(block, str):
+                parts.append(block)
+        joined = "".join(parts).strip()
+        if joined:
+            return joined
+    raise RuntimeError("chat completion message content was empty")
+
+
+def execute(model: str, row: dict[str, Any], timeout_seconds: int = 180) -> tuple[dict[str, Any], dict[str, int]]:
+    api_key = _api_key()
     body = json.dumps(build_request(model, row), ensure_ascii=False).encode("utf-8")
     request = Request(
-        "https://api.deepseek.com/chat/completions",
+        _chat_completions_url(),
         data=body,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -91,15 +140,46 @@ def execute(model: str, row: dict[str, Any], timeout_seconds: int = 60) -> tuple
             payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"DeepSeek request failed: {error.code}: {detail}") from error
+        raise RuntimeError(f"chat completion failed: {error.code}: {detail}") from error
     try:
-        content = payload["choices"][0]["message"]["content"]
-        verdict = json.loads(content)
+        message = payload["choices"][0]["message"]
+        content = _message_content(message)
+        # Strip optional markdown fences some gateways add around JSON.
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            stripped = stripped.strip("`")
+            if stripped.startswith("json"):
+                stripped = stripped[4:]
+            stripped = stripped.strip()
+        verdict = json.loads(stripped)
         usage = payload.get("usage", {})
         tokens = {
             "input": int(usage.get("prompt_tokens", 0)),
             "output": int(usage.get("completion_tokens", 0)),
         }
     except (IndexError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
-        raise RuntimeError("DeepSeek response did not contain a valid JSON verdict") from error
+        raise RuntimeError("chat completion response did not contain a valid JSON verdict") from error
     return verdict, tokens
+
+
+def execute_with_retries(
+    model: str,
+    row: dict[str, Any],
+    *,
+    timeout_seconds: int = 180,
+    max_attempts: int = 4,
+    base_delay_seconds: float = 2.0,
+) -> tuple[dict[str, Any], dict[str, int]]:
+    last_error: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return execute(model, row, timeout_seconds=timeout_seconds)
+        except (TimeoutError, URLError, RuntimeError) as error:
+            last_error = error
+            if attempt >= max_attempts:
+                break
+            delay = base_delay_seconds * (2 ** (attempt - 1))
+            print(f"retry {attempt}/{max_attempts} after {error}; sleeping {delay:.1f}s")
+            time.sleep(delay)
+    assert last_error is not None
+    raise last_error

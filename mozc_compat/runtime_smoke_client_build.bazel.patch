@@ -1,0 +1,10 @@
+mozc_cc_binary(
+    name = "runtime_smoke_client",
+    srcs = ["runtime_smoke_client.cc"],
+    deps = [
+        ":client",
+        ":client_interface",
+        "//base:init_mozc",
+        "//protocol:commands_cc_proto",
+    ],
+)

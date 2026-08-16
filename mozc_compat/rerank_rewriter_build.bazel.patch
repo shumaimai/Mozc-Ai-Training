@@ -1,0 +1,41 @@
+# RerankRewriter — add to mozc/src/rewriter/BUILD.bazel (NEXT_TASK_PHASE3_CTX)
+
+mozc_cc_library(
+    name = "rerank_rewriter",
+    srcs = [
+        "context_clip.cc",
+        "rerank_guard.cc",
+        "rerank_rewriter.cc",
+    ],
+    hdrs = [
+        "context_clip.h",
+        "rerank_eligible_readings.inc",
+        "rerank_guard.h",
+        "rerank_margin.h",
+        "rerank_rewriter.h",
+    ],
+    deps = [
+        ":rewriter_interface",
+        "//converter:segments",
+        "//request:conversion_request",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+    linkopts = select({
+        "@platforms//os:windows": ["ws2_32.lib"],
+        "//conditions:default": [],
+    }),
+    alwayslink = 1,
+)
+
+mozc_cc_test(
+    name = "rerank_rewriter_test",
+    size = "medium",
+    srcs = ["rerank_rewriter_test.cc"],
+    deps = [
+        ":rerank_rewriter",
+        "//converter:segments",
+        "//request:conversion_request",
+        "//testing:gunit_main",
+    ],
+)
