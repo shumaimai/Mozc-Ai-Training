@@ -18,6 +18,21 @@ Release assetとして配布しません。
 - 推論: Mozc-Ai MSI内のCPU常駐デーモン（127.0.0.1限定）
 - private usage fine-tune: v1.0.0には不採用・不収録
 
+## 公開MSI同梱モデルのHit@1
+
+公開MSIに同梱した30Mモデルを、文脈ON・`tau=2.5`で評価した全体Hit@1です。
+
+| 評価セット | 件数 | Mozc Hit@1 | 30Mモデル Hit@1 | Mozc比 |
+|---|---:|---:|---:|---:|
+| seen | 1,494 | 77.04% | **89.36%** | **+12.32pt** |
+| unseen | 1,487 | 80.16% | **89.98%** | **+9.82pt** |
+| fresh | 1,482 | 81.38% | **92.38%** | **+11.00pt** |
+
+これは公開コーパスから作成したオフライン評価です。実際の入力分布全体に対する
+正答率を保証する値ではありません。詳細は
+[`docs/reranker/reports/PHASE3_CTX_REPORT.md`](docs/reranker/reports/PHASE3_CTX_REPORT.md)
+を参照してください。
+
 ## 最初に読むもの
 
 - [`docs/START_HERE.md`](docs/START_HERE.md): 現行資料の地図
