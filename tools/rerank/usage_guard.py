@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import FrozenSet
@@ -21,6 +22,7 @@ from tools.rerank.context_clip import clean_context, normalize_reading
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ELIGIBLE_PATH = ROOT / "artifacts/rerank/rerank_eligible_readings.json"
+FALLBACK_ELIGIBLE_INC = ROOT / "mozc_compat/rerank_eligible_readings.inc"
 
 # Reason codes — must match C++ rerank_guard.cc
 REASON_READING_TOO_SHORT = "reading_too_short"
@@ -105,7 +107,10 @@ def load_eligible_readings(path: str | None = None) -> FrozenSet[str]:
     env = os.environ.get("MOZC_RERANK_ELIGIBLE")
     p = Path(path) if path else (Path(env) if env else DEFAULT_ELIGIBLE_PATH)
     if not p.is_file():
-        return frozenset()
+        if path or env or not FALLBACK_ELIGIBLE_INC.is_file():
+            return frozenset()
+        text = FALLBACK_ELIGIBLE_INC.read_text(encoding="utf-8")
+        return frozenset(re.findall(r'^\s+"([^"]+)",$', text, flags=re.MULTILINE))
     blob = json.loads(p.read_text(encoding="utf-8"))
     readings = blob.get("readings") or blob.get("eligible") or []
     return frozenset(str(r) for r in readings if r)
