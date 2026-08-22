@@ -30,7 +30,7 @@ export PYTHONPATH=/work/mozc-ai-training
 export HF_HOME=/root/.cache/huggingface
 export TOKENIZERS_PARALLELISM=false
 export PYTHONUNBUFFERED=1
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+unset PYTORCH_CUDA_ALLOC_CONF PYTORCH_ALLOC_CONF PYTORCH_HIP_ALLOC_CONF
 python3 -m tools.rerank.train_cross_encoder train \
   --train /work/mozc-ai-training/data/rerank_v2/train.jsonl \
   --eval /work/mozc-ai-training/data/rerank_v2/holdout.jsonl \

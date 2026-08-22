@@ -1,0 +1,41 @@
+name: ROCm bug report
+description: Report a reproducible native ROCm correctness or stability problem
+title: "[ROCm bug] "
+labels: ["bug", "rocm"]
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Commands, smallest tensor/model case, and expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: matrix
+    attributes:
+      label: GPU and software matrix
+      description: GPU, gcnArchName, driver, OS, Python, PyTorch, HIP/ROCm, build identity
+    validations:
+      required: true
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Fallback comparison
+      description: State whether Torch fallback, MOZC_DISABLE_HIP_CONV, or MOZC_DISABLE_HIP_SSD changes the result.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Sanitized error or log tail
+    validations:
+      required: true
+  - type: checkboxes
+    id: allocator
+    attributes:
+      label: Allocator and privacy checks
+      options:
+        - label: expandable_segments is not enabled.
+          required: true
+        - label: No secrets, model files, checkpoints, adapters, or private data are attached.
+          required: true
