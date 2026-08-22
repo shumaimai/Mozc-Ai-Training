@@ -1,0 +1,8 @@
+{"instruction":"かなを漢字に変換する", "input":"きょうは", "output":"今日は"}
+{"instruction":"かなを漢字に変換する", "input":"にほんご", "output":"日本語"}
+{"instruction":"かなを漢字に変換する", "input":"へんかん", "output":"変換"}
+{"instruction":"かなを漢字に変換する", "input":"がくしゅう", "output":"学習"}
+{"instruction":"かなを漢字に変換する", "input":"あした", "output":"明日"}
+{"instruction":"かなを漢字に変換する", "input":"きかい", "output":"機械"}
+{"instruction":"かなを漢字に変換する", "input":"じしょ", "output":"辞書"}
+{"instruction":"かなを漢字に変換する", "input":"にゅうりょく", "output":"入力"}
