@@ -156,3 +156,27 @@ modal run --detach scripts/modal_sarashina_jev.py \
   --limit 1500 \
   --out /artifacts/sarashina_jev/12l_public_quick
 ```
+
+
+## INT8 recovery pipeline
+
+The current 8-layer BF16 artifact can be pushed through the full recovery pipeline with one Modal command:
+
+```bash
+modal run --detach scripts/modal_sarashina_jev_qat_pipeline.py
+```
+
+The pipeline runs entirely in Modal after launch:
+
+1. Re-benchmark the original 8L artifact, including a dynamic `Gather` INT8 experiment.
+2. Train an INT8-aware student on A100 80GB using the original 8L BF16 artifact as a frozen teacher.
+3. Use supervised CE plus teacher KL distillation and centered-score MSE.
+4. Fake-quantize Linear weights/activations and gathered embedding vectors during QAT.
+5. Export FP32/dynamic/QDQ ONNX variants and evaluate all of them on the same held-out set.
+6. If the best <=400 MiB INT8 model is below Hit@1 0.82, automatically run a second stronger QAT refinement pass.
+7. Save the aggregate result to:
+   `/artifacts/sarashina_jev/int8_recovery/pipeline_report.json`
+
+The 0.82 accuracy gate is intentionally below the current 8L BF16 proxy result (~0.848) to allow a small quantization loss while rejecting catastrophic PTQ collapse. The gate can be overridden with `--accuracy-gate`.
+
+The pipeline keeps the scalar score head in float during ONNX quantization because its size is negligible and ranking is sensitive to the final projection.
