@@ -74,7 +74,7 @@ def _run(cmd: list[str]) -> None:
 
 @app.function(
     image=train_image,
-    gpu="A100-80GB",
+    gpu="L4",
     timeout=8 * 60 * 60,
     volumes={
         "/artifacts": artifacts,
