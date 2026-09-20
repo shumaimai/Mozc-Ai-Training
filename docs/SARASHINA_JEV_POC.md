@@ -107,7 +107,7 @@ modal volume put mozc-training-data \
 Then launch the 12-layer smoke run:
 
 ```bash
-modal run scripts/modal_sarashina_jev.py \
+modal run --detach scripts/modal_sarashina_jev.py \
   --keep-layers 12 \
   --train-last-n-layers 4 \
   --page-size 5 \
@@ -134,7 +134,7 @@ For the pruning experiment, Modal can generate a proxy dataset itself from the p
 This is only for answering the pruning question: whether difficult Japanese context knowledge survives 24 -> 12/8 layers. It is not a replacement for the final real Mozc N-best dataset.
 
 ```bash
-modal run scripts/modal_sarashina_jev.py \
+modal run --detach scripts/modal_sarashina_jev.py \
   --bootstrap \
   --keep-layers 12 \
   --train-last-n-layers 4 \
@@ -148,7 +148,7 @@ The launcher first runs a CPU bootstrap function, commits the generated JSONL to
 For a smaller first trial:
 
 ```bash
-modal run scripts/modal_sarashina_jev.py \
+modal run --detach scripts/modal_sarashina_jev.py \
   --bootstrap \
   --bootstrap-scan-articles 1500 \
   --bootstrap-example-articles 1500 \
