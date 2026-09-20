@@ -90,6 +90,7 @@ def main() -> int:
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--no-shuffle-train-candidates", action="store_true", help="Keep original candidate order during training")
     parser.add_argument("--limit", type=int, default=0)
     args = parser.parse_args()
 
@@ -157,6 +158,8 @@ def main() -> int:
         tokenizer,
         page_size=args.page_size,
         max_length=args.max_length,
+        shuffle_gold_candidates=not args.no_shuffle_train_candidates,
+        shuffle_seed=args.seed,
     )
     train_loader = DataLoader(
         train_ds,
@@ -204,6 +207,12 @@ def main() -> int:
     global_step = 0
     optimizer.zero_grad(set_to_none=True)
     for epoch in range(args.epochs):
+        train_ds.set_epoch(epoch)
+        print(
+            f"train_candidate_target_hist epoch={epoch+1} "
+            f"{train_ds.target_histogram()}",
+            flush=True,
+        )
         model.train()
         running = 0.0
         running_count = 0
