@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -110,6 +111,35 @@ def build_candidate_text(reading: str, context: str, candidate: str) -> str:
     return "\n".join(parts)
 
 
+def shuffle_gold_page(
+    item: PageExample,
+    *,
+    seed: int,
+    epoch: int,
+    index: int,
+) -> PageExample:
+    """Deterministically shuffle a supervised gold page and remap its target.
+
+    Anchor pages intentionally keep the original Mozc order.
+    """
+    if not item.is_gold_page or len(item.candidates) <= 1:
+        return item
+    order = list(range(len(item.candidates)))
+    rng = random.Random(seed + epoch * 1_000_003 + index * 97)
+    rng.shuffle(order)
+    candidates = tuple(item.candidates[i] for i in order)
+    target = order.index(item.target)
+    return PageExample(
+        reading=item.reading,
+        context=item.context,
+        candidates=candidates,
+        target=target,
+        weight=item.weight,
+        is_gold_page=item.is_gold_page,
+        source=item.source,
+    )
+
+
 class ListwisePageDataset(Dataset):
     def __init__(
         self,
@@ -118,17 +148,49 @@ class ListwisePageDataset(Dataset):
         *,
         page_size: int = 5,
         max_length: int = 128,
+        shuffle_gold_candidates: bool = False,
+        shuffle_seed: int = 42,
     ):
         self.pages = pages
         self.tokenizer = tokenizer
         self.page_size = page_size
         self.max_length = max_length
+        self.shuffle_gold_candidates = shuffle_gold_candidates
+        self.shuffle_seed = shuffle_seed
+        self.epoch = 0
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = int(epoch)
+
+    def target_histogram(self) -> list[int]:
+        hist = [0 for _ in range(self.page_size)]
+        for index, original in enumerate(self.pages):
+            item = (
+                shuffle_gold_page(
+                    original,
+                    seed=self.shuffle_seed,
+                    epoch=self.epoch,
+                    index=index,
+                )
+                if self.shuffle_gold_candidates
+                else original
+            )
+            if 0 <= item.target < self.page_size:
+                hist[item.target] += 1
+        return hist
 
     def __len__(self) -> int:
         return len(self.pages)
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
         item = self.pages[index]
+        if self.shuffle_gold_candidates:
+            item = shuffle_gold_page(
+                item,
+                seed=self.shuffle_seed,
+                epoch=self.epoch,
+                index=index,
+            )
         candidates = list(item.candidates)
         valid = [True] * len(candidates)
         while len(candidates) < self.page_size:
