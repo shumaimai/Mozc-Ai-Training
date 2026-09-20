@@ -35,6 +35,8 @@ def evaluate(model, loader, device: str) -> dict[str, float]:
     gold_correct = 0
     anchor_total = 0
     anchor_kept = 0
+    first_candidate_gold = 0
+    predicted_first = 0
     for batch in loader:
         ids = batch["input_ids"].to(device)
         mask = batch["attention_mask"].to(device)
@@ -44,6 +46,8 @@ def evaluate(model, loader, device: str) -> dict[str, float]:
         pred = scores.argmax(dim=1)
         ok = pred.eq(target)
         total += int(target.numel())
+        first_candidate_gold += int(target.eq(0).sum().item())
+        predicted_first += int(pred.eq(0).sum().item())
         correct += int(ok.sum().item())
         gold = batch["is_gold_page"].bool()
         if gold.any():
@@ -57,6 +61,8 @@ def evaluate(model, loader, device: str) -> dict[str, float]:
         "page_hit1": correct / total if total else 0.0,
         "gold_page_hit1": gold_correct / gold_total if gold_total else 0.0,
         "anchor_keep_rate": anchor_kept / anchor_total if anchor_total else 0.0,
+        "candidate0_baseline": first_candidate_gold / total if total else 0.0,
+        "predicted_candidate0_rate": predicted_first / total if total else 0.0,
         "pages": float(total),
     }
 
@@ -75,7 +81,8 @@ def main() -> int:
     parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--grad-accum", type=int, default=4)
-    parser.add_argument("--lr", type=float, default=2e-5)
+    parser.add_argument("--lr", type=float, default=2e-5, help="Backbone learning rate")
+    parser.add_argument("--head-lr", type=float, default=1e-3, help="Fresh score-head learning rate")
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--train-last-n-layers", type=int, default=4)
     parser.add_argument("--train-embeddings", action="store_true")
@@ -170,11 +177,23 @@ def main() -> int:
         else None
     )
 
-    params = [p for p in model.parameters() if p.requires_grad]
+    head_params = [p for p in model.score_head.parameters() if p.requires_grad]
+    head_ids = {id(p) for p in head_params}
+    backbone_params = [
+        p for p in model.parameters()
+        if p.requires_grad and id(p) not in head_ids
+    ]
     optimizer = torch.optim.AdamW(
-        params,
-        lr=args.lr,
+        [
+            {"params": backbone_params, "lr": args.lr},
+            {"params": head_params, "lr": args.head_lr},
+        ],
         weight_decay=args.weight_decay,
+    )
+    print(
+        f"optimizer backbone_lr={args.lr} head_lr={args.head_lr} "
+        f"backbone_tensors={len(backbone_params)} head_tensors={len(head_params)}",
+        flush=True,
     )
     use_amp = device == "cuda" and dtype in (torch.float16, torch.bfloat16)
     scaler = torch.amp.GradScaler(
