@@ -143,6 +143,36 @@ def evaluate_onnx(
     }
 
 
+def find_score_head_nodes(model_path: Path) -> list[str]:
+    """Find the final Gemm/MatMul feeding the exported scores output."""
+    try:
+        import onnx
+        model = onnx.load(str(model_path), load_external_data=False)
+        producers = {}
+        for node in model.graph.node:
+            for output in node.output:
+                producers[output] = node
+        frontier = ["scores"]
+        seen = set()
+        found: list[str] = []
+        for _ in range(8):
+            next_frontier = []
+            for value in frontier:
+                node = producers.get(value)
+                if node is None or id(node) in seen:
+                    continue
+                seen.add(id(node))
+                if node.op_type in {"Gemm", "MatMul"} and node.name:
+                    found.append(node.name)
+                    continue
+                next_frontier.extend(node.input)
+            frontier = next_frontier
+        return found
+    except Exception as exc:
+        print(f"score-head discovery skipped: {exc}", flush=True)
+        return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact", required=True)
@@ -192,6 +222,7 @@ def main() -> int:
 
     fp32_path = out / "sarashina_jev_fp32.onnx"
     dynamic_path = out / "sarashina_jev_int8_dynamic.onnx"
+    dynamic_gather_path = out / "sarashina_jev_int8_dynamic_gather.onnx"
     static_path = out / "sarashina_jev_int8_qdq.onnx"
 
     print(f"export fp32 -> {fp32_path}", flush=True)
@@ -226,6 +257,10 @@ def main() -> int:
         quantize_static,
     )
 
+    score_head_nodes = find_score_head_nodes(fp32_path)
+    if score_head_nodes:
+        print(f"leave score head in float nodes={score_head_nodes}", flush=True)
+
     print(f"dynamic INT8 MatMul/Gemm -> {dynamic_path}", flush=True)
     quantize_dynamic(
         model_input=str(fp32_path),
@@ -234,7 +269,27 @@ def main() -> int:
         per_channel=True,
         reduce_range=False,
         op_types_to_quantize=["MatMul", "Gemm"],
+        nodes_to_exclude=score_head_nodes,
     )
+
+    dynamic_gather_error = None
+    print(
+        f"dynamic INT8 MatMul/Gemm/Gather (weight-focused experiment) -> {dynamic_gather_path}",
+        flush=True,
+    )
+    try:
+        quantize_dynamic(
+            model_input=str(fp32_path),
+            model_output=str(dynamic_gather_path),
+            weight_type=QuantType.QInt8,
+            per_channel=True,
+            reduce_range=False,
+            op_types_to_quantize=["MatMul", "Gemm", "Gather"],
+            nodes_to_exclude=score_head_nodes,
+        )
+    except Exception as exc:
+        dynamic_gather_error = f"{type(exc).__name__}: {exc}"
+        print(f"dynamic Gather quantization unavailable: {dynamic_gather_error}", flush=True)
 
     print(
         f"static QDQ INT8 MatMul/Gemm/Gather calib_pages={args.calib_pages} -> {static_path}",
@@ -252,16 +307,21 @@ def main() -> int:
         per_channel=True,
         reduce_range=False,
         op_types_to_quantize=["MatMul", "Gemm", "Gather"],
+        nodes_to_exclude=score_head_nodes,
     )
 
     tokenizer.save_pretrained(out / "tokenizer")
 
     reports = {}
-    for name, path in [
+    model_variants = [
         ("fp32", fp32_path),
         ("int8_dynamic", dynamic_path),
-        ("int8_qdq", static_path),
-    ]:
+    ]
+    if dynamic_gather_path.exists():
+        model_variants.append(("int8_dynamic_gather", dynamic_gather_path))
+    model_variants.append(("int8_qdq", static_path))
+
+    for name, path in model_variants:
         print(f"evaluate {name} size={file_size_mb(path):.1f} MiB", flush=True)
         try:
             metrics = evaluate_onnx(
@@ -281,7 +341,7 @@ def main() -> int:
             print(f"{name} evaluation failed: {exc}", flush=True)
 
     fp_hit = reports.get("fp32", {}).get("hit1")
-    for name in ("int8_dynamic", "int8_qdq"):
+    for name in ("int8_dynamic", "int8_dynamic_gather", "int8_qdq"):
         hit = reports.get(name, {}).get("hit1")
         if fp_hit is not None and hit is not None:
             reports[name]["delta_hit1_vs_fp32"] = hit - fp_hit
@@ -294,7 +354,8 @@ def main() -> int:
         "calib_pages": min(args.calib_pages, len(calib_ds)),
         "eval_pages": len(eval_ds),
         "models": reports,
-        "preferred_if_accuracy_holds": "int8_qdq",
+        "dynamic_gather_error": dynamic_gather_error,
+        "preferred_if_accuracy_holds": "smallest INT8 variant within the accuracy gate",
         "note": (
             "int8_qdq includes Gather so the token embedding can be quantized. "
             "If Hit@1 regresses materially, move to QAT/quantization-aware distillation."
