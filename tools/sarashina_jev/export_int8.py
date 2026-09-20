@@ -165,6 +165,7 @@ def main() -> int:
     model, tokenizer, meta = SarashinaJevScorer.load_artifact(
         artifact,
         torch_dtype=torch.float32,
+        attn_implementation="eager",
     )
     model.cpu().eval()
 
