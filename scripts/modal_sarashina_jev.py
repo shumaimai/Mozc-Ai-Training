@@ -1,16 +1,12 @@
-"""Run Sarashina-JEV training on Modal and detach safely.
+"""Run Sarashina-JEV fully in Modal, including optional public-data bootstrap.
 
-One-time dataset staging example:
-    modal volume create mozc-training-data
-    modal volume put mozc-training-data data/public/rerank_ctx/train_v2.jsonl /train_v2.jsonl
-    modal volume put mozc-training-data data/public/rerank_ctx/eval_unseen_v2.jsonl /eval_unseen_v2.jsonl
-
-Launch:
+Cloud-only smoke:
     modal run scripts/modal_sarashina_jev.py \
+      --bootstrap \
       --limit 2000 \
       --keep-layers 12 \
       --train-last-n-layers 4 \
-      --out /artifacts/sarashina_jev/12l_smoke
+      --out /artifacts/sarashina_jev/12l_public_smoke
 """
 
 from __future__ import annotations
@@ -23,17 +19,23 @@ import modal
 
 app = modal.App("mozc-sarashina-jev")
 
-image = (
+base_image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "torch",
-        "transformers>=4.48,<5",
-        "tokenizers>=0.21,<0.23",
-        "sentencepiece>=0.2",
-        "safetensors>=0.4",
-        "accelerate>=0.28",
+        "datasets>=3.0",
+        "SudachiPy>=0.6",
+        "sudachidict_core",
     )
     .add_local_dir("tools", "/root/repo/tools")
+)
+
+train_image = base_image.pip_install(
+    "torch",
+    "transformers>=4.48,<5",
+    "tokenizers>=0.21,<0.23",
+    "sentencepiece>=0.2",
+    "safetensors>=0.4",
+    "accelerate>=0.28",
 )
 
 artifacts = modal.Volume.from_name("mozc-artifacts", create_if_missing=True)
@@ -42,7 +44,42 @@ training_data = modal.Volume.from_name("mozc-training-data", create_if_missing=T
 
 
 @app.function(
-    image=image,
+    image=base_image,
+    timeout=2 * 60 * 60,
+    volumes={
+        "/data": training_data,
+        "/root/.cache/huggingface": hf_cache,
+    },
+)
+def bootstrap_public_data(
+    out_dir: str = "/data/sarashina_jev_public_proxy",
+    scan_articles: int = 6000,
+    example_articles: int = 6000,
+    max_examples: int = 6000,
+):
+    os.chdir("/root/repo")
+    sys.path.insert(0, "/root/repo")
+    from tools.sarashina_jev.bootstrap_public import build_public_proxy
+
+    meta = build_public_proxy(
+        out_dir,
+        scan_articles=scan_articles,
+        example_articles=example_articles,
+        max_examples=max_examples,
+        eval_ratio=0.1,
+    )
+    training_data.commit()
+    hf_cache.commit()
+    print("BOOTSTRAP_DONE", meta, flush=True)
+    return {
+        "train_path": f"{out_dir}/train.jsonl",
+        "eval_path": f"{out_dir}/eval.jsonl",
+        "meta": meta,
+    }
+
+
+@app.function(
+    image=train_image,
     gpu="L4",
     timeout=6 * 60 * 60,
     volumes={
@@ -69,15 +106,12 @@ def train(
 ):
     os.chdir("/root/repo")
     sys.path.insert(0, "/root/repo")
+    training_data.reload()
 
     if not os.path.isfile(train_path):
-        raise FileNotFoundError(
-            f"training data not found: {train_path}; upload it to mozc-training-data"
-        )
+        raise FileNotFoundError(f"training data not found: {train_path}")
     if eval_path and not os.path.isfile(eval_path):
-        raise FileNotFoundError(
-            f"eval data not found: {eval_path}; upload it to mozc-training-data"
-        )
+        raise FileNotFoundError(f"eval data not found: {eval_path}")
 
     cmd = [
         sys.executable,
@@ -121,13 +155,11 @@ def train(
 
     print("RUN", " ".join(cmd), flush=True)
     proc = subprocess.run(cmd, env=env, check=False)
-
     artifacts.commit()
     hf_cache.commit()
     print(f"DONE rc={proc.returncode} out={out}", flush=True)
     if proc.returncode != 0:
         raise RuntimeError(f"Sarashina-JEV training failed rc={proc.returncode}")
-
     return {"out": out, "returncode": proc.returncode}
 
 
@@ -147,7 +179,25 @@ def main(
     anchor_weight: float = 0.25,
     limit: int = 2000,
     fp16: bool = False,
+    bootstrap: bool = False,
+    bootstrap_scan_articles: int = 6000,
+    bootstrap_example_articles: int = 6000,
+    bootstrap_max_examples: int = 6000,
 ):
+    if bootstrap:
+        staged = bootstrap_public_data.remote(
+            scan_articles=bootstrap_scan_articles,
+            example_articles=bootstrap_example_articles,
+            max_examples=bootstrap_max_examples,
+        )
+        train_path = staged["train_path"]
+        eval_path = staged["eval_path"]
+        print(
+            f"USING_BOOTSTRAP train={train_path} eval={eval_path} "
+            f"rows={staged['meta']['train_rows']}/{staged['meta']['eval_rows']}",
+            flush=True,
+        )
+
     call = train.spawn(
         train_path=train_path,
         eval_path=eval_path,
@@ -164,7 +214,4 @@ def main(
         limit=limit,
         fp16=fp16,
     )
-    print(
-        f"SPAWNED function_call_id={call.object_id} out={out}",
-        flush=True,
-    )
+    print(f"SPAWNED function_call_id={call.object_id} out={out}", flush=True)
