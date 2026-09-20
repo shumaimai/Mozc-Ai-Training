@@ -125,3 +125,34 @@ modal volume get mozc-artifacts /sarashina_jev/12l_smoke ./12l_smoke
 ```
 
 If the dataset filenames differ, override `--train-path` and `--eval-path`.
+
+
+## Cloud-only bootstrap (no home PC required)
+
+For the pruning experiment, Modal can generate a proxy dataset itself from the public Japanese Wikipedia dataset. It finds surface forms sharing a Sudachi reading, ranks five candidates by corpus frequency, and uses the real surrounding sentence as context.
+
+This is only for answering the pruning question: whether difficult Japanese context knowledge survives 24 -> 12/8 layers. It is not a replacement for the final real Mozc N-best dataset.
+
+```bash
+modal run scripts/modal_sarashina_jev.py \
+  --bootstrap \
+  --keep-layers 12 \
+  --train-last-n-layers 4 \
+  --page-size 5 \
+  --limit 2000 \
+  --out /artifacts/sarashina_jev/12l_public_smoke
+```
+
+The launcher first runs a CPU bootstrap function, commits the generated JSONL to `mozc-training-data`, then spawns the L4 training function. Default bootstrap scans 6000 Wikipedia articles and caps the generated dataset at 6000 examples.
+
+For a smaller first trial:
+
+```bash
+modal run scripts/modal_sarashina_jev.py \
+  --bootstrap \
+  --bootstrap-scan-articles 1500 \
+  --bootstrap-example-articles 1500 \
+  --bootstrap-max-examples 2000 \
+  --limit 1500 \
+  --out /artifacts/sarashina_jev/12l_public_quick
+```
