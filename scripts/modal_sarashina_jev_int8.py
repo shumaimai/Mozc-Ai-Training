@@ -20,15 +20,15 @@ app = modal.App("mozc-sarashina-jev-int8")
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "torch",
-        "transformers>=4.48,<5",
-        "tokenizers>=0.21,<0.23",
+        "torch==2.4.1",
+        "transformers==4.44.2",
+        "tokenizers==0.19.1",
         "sentencepiece>=0.2",
         "protobuf>=4.25",
         "safetensors>=0.4",
-        "numpy",
-        "onnx>=1.16",
-        "onnxruntime>=1.20",
+        "numpy<2",
+        "onnx==1.17.0",
+        "onnxruntime==1.20.1",
     )
     .add_local_dir("tools", "/root/repo/tools")
 )
