@@ -86,7 +86,7 @@ def bootstrap_public_data(
 
 @app.function(
     image=train_image,
-    gpu="L4",
+    gpu="A100-80GB",
     timeout=6 * 60 * 60,
     volumes={
         "/artifacts": artifacts,
