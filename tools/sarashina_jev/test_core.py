@@ -4,6 +4,11 @@ import unittest
 
 from tools.sarashina_jev.data import PageExample, encode_candidate_sequence, row_to_pages, shuffle_gold_page
 from tools.sarashina_jev.util import select_even_layers
+from tools.sarashina_jev.qat_utils import (
+    FakeQuantEmbedding,
+    FakeQuantLinear,
+    set_qat_strength,
+)
 
 
 class LayerSelectionTest(unittest.TestCase):
@@ -122,6 +127,31 @@ class PageBuilderTest(unittest.TestCase):
             max_length=40,
         )
         self.assertNotEqual(a, b)
+
+
+
+class QATUtilsTest(unittest.TestCase):
+    def test_fake_quant_linear_keeps_state_dict_names(self):
+        import torch
+        from torch import nn
+
+        base = nn.Linear(4, 3)
+        qat = FakeQuantLinear.from_linear(base)
+        self.assertEqual(set(qat.state_dict().keys()), {"weight", "bias"})
+        x = torch.randn(2, 4)
+        y = qat(x)
+        self.assertEqual(tuple(y.shape), (2, 3))
+
+    def test_fake_quant_embedding_keeps_state_dict_names(self):
+        import torch
+        from torch import nn
+
+        base = nn.Embedding(16, 4)
+        qat = FakeQuantEmbedding.from_embedding(base)
+        self.assertEqual(set(qat.state_dict().keys()), {"weight"})
+        set_qat_strength(qat, 1.0)
+        y = qat(torch.tensor([[1, 2, 3]]))
+        self.assertEqual(tuple(y.shape), (1, 3, 4))
 
 
 if __name__ == "__main__":
