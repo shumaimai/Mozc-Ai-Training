@@ -224,6 +224,19 @@ def main() -> int:
                 running = 0.0
                 running_count = 0
 
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        # Persist the trained epoch before evaluation so an eval-only failure
+        # does not discard the GPU work.
+        model.save_artifact(
+            out,
+            tokenizer,
+            source_model=args.model,
+            kept_layer_indices=kept,
+            page_size=args.page_size,
+        )
+        print(f"checkpoint_saved epoch={epoch+1} path={out}", flush=True)
+
         if eval_loader is not None:
             metrics = evaluate(model, eval_loader, device)
             print(
