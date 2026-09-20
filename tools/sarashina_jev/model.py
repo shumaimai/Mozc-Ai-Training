@@ -111,6 +111,10 @@ class SarashinaJevScorer(nn.Module):
             torch.arange(hidden.shape[0], device=hidden.device),
             last_index,
         ]
+        # The pruned backbone may run in bf16/fp16 while the newly-created
+        # scalar head intentionally keeps fp32 parameters. Match the input
+        # to the head outside autocast too (evaluation/inference).
+        pooled = pooled.to(dtype=self.score_head.weight.dtype)
         return self.score_head(pooled).squeeze(-1)
 
     def score_pages(
