@@ -103,12 +103,63 @@ def build_pages(
 
 
 def build_candidate_text(reading: str, context: str, candidate: str) -> str:
-    parts: list[str] = []
-    if context:
-        parts.append(f"文脈: {context}")
-    parts.append(f"読み: {reading}")
-    parts.append(f"候補: {candidate}")
-    return "\n".join(parts)
+    """Human-readable form of the causal scoring prompt."""
+    return (
+        f"候補: {candidate}\n"
+        f"読み: {reading}\n"
+        f"文脈: {context}\n"
+        "判定:"
+    )
+
+
+def encode_candidate_sequence(
+    tokenizer,
+    *,
+    reading: str,
+    context_ids: list[int],
+    candidate: str,
+    max_length: int,
+) -> tuple[list[int], list[int]]:
+    """Encode a causal scoring prompt without truncating candidate/reading/decision.
+
+    Layout:
+        BOS + 候補 + 読み + 文脈(tail only) + 判定:
+
+    Only the *oldest* context tokens are dropped when the sequence is too long.
+    The final non-padding token is always part of the decision marker, which is
+    where the decoder backbone is pooled by SarashinaJevScorer.
+    """
+    prefix_ids = tokenizer.encode(
+        f"候補: {candidate}\n読み: {reading}\n文脈: ",
+        add_special_tokens=False,
+    )
+    suffix_ids = tokenizer.encode("\n判定:", add_special_tokens=False)
+    bos_id = getattr(tokenizer, "bos_token_id", None)
+    bos_ids = [int(bos_id)] if bos_id is not None else []
+
+    fixed = bos_ids + list(prefix_ids) + list(suffix_ids)
+    if len(fixed) > max_length:
+        raise ValueError(
+            "max_length is too small to preserve candidate/reading/decision "
+            f"(need at least {len(fixed)}, got {max_length})"
+        )
+
+    context_budget = max_length - len(fixed)
+    context_tail = list(context_ids[-context_budget:]) if context_budget > 0 else []
+    input_ids = bos_ids + list(prefix_ids) + context_tail + list(suffix_ids)
+    attention_mask = [1] * len(input_ids)
+
+    pad_id = getattr(tokenizer, "pad_token_id", None)
+    if pad_id is None:
+        pad_id = getattr(tokenizer, "eos_token_id", None)
+    if pad_id is None:
+        pad_id = 0
+    pad_count = max_length - len(input_ids)
+    if pad_count:
+        input_ids.extend([int(pad_id)] * pad_count)
+        attention_mask.extend([0] * pad_count)
+
+    return input_ids, attention_mask
 
 
 def shuffle_gold_page(
@@ -197,20 +248,25 @@ class ListwisePageDataset(Dataset):
             candidates.append(candidates[0])
             valid.append(False)
 
-        texts = [
-            build_candidate_text(item.reading, item.context, candidate)
+        context_ids = self.tokenizer.encode(
+            item.context,
+            add_special_tokens=False,
+        )
+        encoded = [
+            encode_candidate_sequence(
+                self.tokenizer,
+                reading=item.reading,
+                context_ids=context_ids,
+                candidate=candidate,
+                max_length=self.max_length,
+            )
             for candidate in candidates[: self.page_size]
         ]
-        enc = self.tokenizer(
-            texts,
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_length,
-            return_tensors="pt",
-        )
+        input_ids = torch.tensor([ids for ids, _ in encoded], dtype=torch.long)
+        attention_mask = torch.tensor([mask for _, mask in encoded], dtype=torch.long)
         return {
-            "input_ids": enc["input_ids"],
-            "attention_mask": enc["attention_mask"],
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
             "candidate_mask": torch.tensor(valid[: self.page_size], dtype=torch.bool),
             "target": torch.tensor(item.target, dtype=torch.long),
             "weight": torch.tensor(item.weight, dtype=torch.float32),
