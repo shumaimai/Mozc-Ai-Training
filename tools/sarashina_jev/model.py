@@ -166,6 +166,7 @@ class SarashinaJevScorer(nn.Module):
                     "kept_layer_indices": kept_layer_indices,
                     "page_size": page_size,
                     "pooling": "last_non_padding_token",
+                    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
                     "lm_head": False,
                     "autoregressive_generation": False,
                 },
