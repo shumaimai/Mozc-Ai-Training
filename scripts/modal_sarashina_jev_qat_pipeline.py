@@ -2,10 +2,11 @@
 
 Stages:
 1) Re-benchmark the original 8L artifact with all INT8 variants.
-2) QAT + BF16-teacher distillation on A100 80GB.
+2) QAT + BF16-teacher distillation on L4 by default.
 3) Export/evaluate INT8 on CPU.
-4) If the accuracy gate is missed, run a stronger refinement QAT pass.
-5) Persist a single pipeline_report.json with the best compact model.
+4) If the accuracy gate is missed, run stronger refinement passes.
+5) QAT v3 matches the best deployment path: weight-only Linear INT8 + INT8 embeddings.
+6) Persist a single pipeline_report.json with the best compact model.
 
 Run with:
     modal run --detach scripts/modal_sarashina_jev_qat_pipeline.py
@@ -95,7 +96,9 @@ def qat_train(
     head_lr: float,
     kd_weight: float,
     mse_weight: float,
+    margin_weight: float,
     quant_start: float,
+    activation_quantization: bool,
 ):
     os.chdir("/root/repo")
     sys.path.insert(0, "/root/repo")
@@ -136,6 +139,8 @@ def qat_train(
         str(kd_weight),
         "--mse-weight",
         str(mse_weight),
+        "--margin-weight",
+        str(margin_weight),
         "--temperature",
         "2.0",
         "--quant-start",
@@ -143,6 +148,8 @@ def qat_train(
         "--quant-ramp-fraction",
         "0.35",
     ]
+    if activation_quantization:
+        cmd.append("--activation-quantization")
     _run(cmd)
     artifacts.commit()
     hf_cache.commit()
@@ -277,7 +284,9 @@ def pipeline(
         2e-4,
         0.7,
         0.05,
+        0.0,
         0.25,
+        True,
     )
     qat1_report = export_eval.remote(
         qat1,
@@ -318,7 +327,9 @@ def pipeline(
             1e-4,
             1.2,
             0.10,
+            0.0,
             1.0,
+            True,
         )
         qat2_report = export_eval.remote(
             qat2,
@@ -334,6 +345,47 @@ def pipeline(
         }
         candidates.append(("qat_v2", qat2_best))
         print(f"PIPELINE qat_v2_best={qat2_best}", flush=True)
+
+        # Stage 3: deployment-matched QAT. Dynamic Gather INT8 is weight-focused,
+        # so do not fake-quantize Linear activations here. Distill teacher margins
+        # explicitly and continue from the strongest QAT v2 checkpoint.
+        if qat2_best["hit1"] < accuracy_gate:
+            qat3 = f"{root}/qat_v3_weight_only"
+            print(
+                f"PIPELINE stage=qat_v3_weight_only reason=hit1<{accuracy_gate}",
+                flush=True,
+            )
+            qat_train.remote(
+                teacher_artifact,
+                qat2,
+                qat3,
+                train_path,
+                eval_path,
+                3,
+                limit,
+                1e-6,
+                5e-6,
+                5e-5,
+                1.5,
+                0.10,
+                0.25,
+                1.0,
+                False,
+            )
+            qat3_report = export_eval.remote(
+                qat3,
+                train_path,
+                eval_path,
+                f"{qat3}/onnx_int8",
+                512,
+            )
+            qat3_best = _best_compact(qat3_report)
+            report["stages"]["qat_v3_weight_only"] = {
+                "best": qat3_best,
+                "report": qat3_report,
+            }
+            candidates.append(("qat_v3_weight_only", qat3_best))
+            print(f"PIPELINE qat_v3_best={qat3_best}", flush=True)
 
     best_stage, best = max(
         candidates,
