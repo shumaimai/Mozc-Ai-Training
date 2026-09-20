@@ -161,6 +161,24 @@ def main() -> int:
         shuffle_gold_candidates=not args.no_shuffle_train_candidates,
         shuffle_seed=args.seed,
     )
+    probe = train_ds[0]
+    probe_valid = int(probe["candidate_mask"].sum().item())
+    probe_rows = probe["input_ids"][:probe_valid]
+    probe_unique = len({tuple(row.tolist()) for row in probe_rows})
+    probe_last_tokens = []
+    for row, mask in zip(
+        probe["input_ids"][:probe_valid],
+        probe["attention_mask"][:probe_valid],
+    ):
+        last = int(mask.sum().item()) - 1
+        probe_last_tokens.append(int(row[last].item()))
+    print(
+        f"input_probe valid_candidates={probe_valid} "
+        f"unique_token_sequences={probe_unique} "
+        f"decision_last_token_ids={probe_last_tokens}",
+        flush=True,
+    )
+
     train_loader = DataLoader(
         train_ds,
         batch_size=args.batch_size,
