@@ -17,6 +17,7 @@ from tools.sarashina_jev.model import SarashinaJevScorer
 from tools.sarashina_jev.qat_utils import (
     qat_module_counts,
     replace_modules_for_qat,
+    set_qat_activation_quantization,
     set_qat_strength,
 )
 
@@ -68,7 +69,13 @@ def main() -> int:
     p.add_argument("--weight-decay", type=float, default=0.01)
     p.add_argument("--kd-weight", type=float, default=0.7)
     p.add_argument("--mse-weight", type=float, default=0.05)
+    p.add_argument("--margin-weight", type=float, default=0.0)
     p.add_argument("--temperature", type=float, default=2.0)
+    p.add_argument(
+        "--activation-quantization",
+        action="store_true",
+        help="Also fake-quantize Linear activations (QDQ-style). Default is weight-only dynamic INT8 style.",
+    )
     p.add_argument("--quant-start", type=float, default=0.25)
     p.add_argument("--quant-ramp-fraction", type=float, default=0.35)
     p.add_argument("--seed", type=int, default=42)
@@ -107,6 +114,7 @@ def main() -> int:
         train_final_norm=True,
     )
     replaced = replace_modules_for_qat(student.backbone, quantize_embeddings=True)
+    set_qat_activation_quantization(student, args.activation_quantization)
     student.to(device)
     if hasattr(student.backbone, "gradient_checkpointing_enable"):
         student.backbone.gradient_checkpointing_enable(
@@ -118,6 +126,7 @@ def main() -> int:
                 "replaced_modules": replaced,
                 **qat_module_counts(student),
                 "student_params": student.parameter_report(),
+                "activation_quantization": args.activation_quantization,
             },
             ensure_ascii=False,
             indent=2,
@@ -184,7 +193,7 @@ def main() -> int:
     for epoch in range(args.epochs):
         train_ds.set_epoch(epoch)
         student.train()
-        running = {"loss": 0.0, "ce": 0.0, "kd": 0.0, "mse": 0.0}
+        running = {"loss": 0.0, "ce": 0.0, "kd": 0.0, "mse": 0.0, "margin": 0.0}
         running_count = 0
 
         for batch_index, batch in enumerate(train_loader, start=1):
@@ -236,7 +245,25 @@ def main() -> int:
                 mse_each = (student_center - teacher_center).pow(2).mean(dim=-1)
                 mse = weighted_mean(mse_each, weight)
 
-                raw_loss = ce + args.kd_weight * kd + args.mse_weight * mse
+                # Match the teacher's top-1 separation from every other candidate.
+                # This directly optimizes the ranking geometry used by the IME.
+                teacher_top_idx = teacher_scores.float().argmax(dim=-1, keepdim=True)
+                teacher_top = teacher_scores.float().gather(1, teacher_top_idx)
+                student_top = student_scores.float().gather(1, teacher_top_idx)
+                teacher_margin = teacher_top - teacher_scores.float()
+                student_margin = student_top - student_scores.float()
+                valid = cand_mask.float()
+                margin_each = (
+                    (student_margin - teacher_margin).pow(2) * valid
+                ).sum(dim=-1) / valid.sum(dim=-1).clamp_min(1.0)
+                margin = weighted_mean(margin_each, weight)
+
+                raw_loss = (
+                    ce
+                    + args.kd_weight * kd
+                    + args.mse_weight * mse
+                    + args.margin_weight * margin
+                )
                 loss = raw_loss / args.grad_accum
 
             scaler.scale(loss).backward()
@@ -245,6 +272,7 @@ def main() -> int:
             running["ce"] += float(ce.detach().cpu())
             running["kd"] += float(kd.detach().cpu())
             running["mse"] += float(mse.detach().cpu())
+            running["margin"] += float(margin.detach().cpu())
             running_count += 1
 
             if batch_index % args.grad_accum == 0 or batch_index == len(train_loader):
@@ -263,10 +291,11 @@ def main() -> int:
                     f"qat epoch={epoch+1} batch={batch_index}/{len(train_loader)} "
                     f"strength={strength:.3f} "
                     f"loss={avg['loss']:.4f} ce={avg['ce']:.4f} "
-                    f"kd={avg['kd']:.4f} mse={avg['mse']:.4f}",
+                    f"kd={avg['kd']:.4f} mse={avg['mse']:.4f} "
+                    f"margin={avg['margin']:.4f}",
                     flush=True,
                 )
-                running = {"loss": 0.0, "ce": 0.0, "kd": 0.0, "mse": 0.0}
+                running = {"loss": 0.0, "ce": 0.0, "kd": 0.0, "mse": 0.0, "margin": 0.0}
                 running_count = 0
 
         set_qat_strength(student, 1.0)
