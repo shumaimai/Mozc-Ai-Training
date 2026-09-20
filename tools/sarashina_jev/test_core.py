@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from tools.sarashina_jev.data import PageExample, row_to_pages, shuffle_gold_page
+from tools.sarashina_jev.data import PageExample, encode_candidate_sequence, row_to_pages, shuffle_gold_page
 from tools.sarashina_jev.util import select_even_layers
 
 
@@ -66,6 +66,62 @@ class PageBuilderTest(unittest.TestCase):
         )
         shuffled = shuffle_gold_page(item, seed=42, epoch=9, index=7)
         self.assertEqual(shuffled, item)
+
+
+    def test_truncation_preserves_candidate_reading_and_decision(self):
+        class FakeTokenizer:
+            bos_token_id = 101
+            pad_token_id = 0
+            eos_token_id = 102
+
+            def encode(self, text, add_special_tokens=False):
+                return [1000 + ord(ch) for ch in text]
+
+        tok = FakeTokenizer()
+        context_ids = [2000 + i for i in range(100)]
+        ids, mask = encode_candidate_sequence(
+            tok,
+            reading="きしゃ",
+            context_ids=context_ids,
+            candidate="記者",
+            max_length=40,
+        )
+        used = [token for token, keep in zip(ids, mask) if keep]
+        prefix = tok.encode("候補: 記者\n読み: きしゃ\n文脈: ", add_special_tokens=False)
+        suffix = tok.encode("\n判定:", add_special_tokens=False)
+
+        self.assertEqual(used[0], tok.bos_token_id)
+        self.assertEqual(used[1 : 1 + len(prefix)], prefix)
+        self.assertEqual(used[-len(suffix) :], suffix)
+        self.assertNotIn(context_ids[0], used)
+        self.assertIn(context_ids[-1], used)
+
+    def test_different_candidates_remain_different_after_truncation(self):
+        class FakeTokenizer:
+            bos_token_id = 101
+            pad_token_id = 0
+            eos_token_id = 102
+
+            def encode(self, text, add_special_tokens=False):
+                return [1000 + ord(ch) for ch in text]
+
+        tok = FakeTokenizer()
+        context_ids = [2000 + i for i in range(100)]
+        a, _ = encode_candidate_sequence(
+            tok,
+            reading="きしゃ",
+            context_ids=context_ids,
+            candidate="記者",
+            max_length=40,
+        )
+        b, _ = encode_candidate_sequence(
+            tok,
+            reading="きしゃ",
+            context_ids=context_ids,
+            candidate="汽車",
+            max_length=40,
+        )
+        self.assertNotEqual(a, b)
 
 
 if __name__ == "__main__":
