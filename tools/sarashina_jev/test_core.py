@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from tools.sarashina_jev.data import row_to_pages
+from tools.sarashina_jev.data import PageExample, row_to_pages, shuffle_gold_page
 from tools.sarashina_jev.util import select_even_layers
 
 
@@ -41,6 +41,31 @@ class PageBuilderTest(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertTrue(pages[0].is_gold_page)
         self.assertEqual(pages[0].target, 0)
+
+    def test_shuffle_gold_page_remaps_target_and_preserves_gold(self):
+        item = PageExample(
+            reading="きしゃ",
+            context="新聞の",
+            candidates=("記者", "汽車", "貴社", "帰社", "喜捨"),
+            target=0,
+            weight=1.0,
+            is_gold_page=True,
+        )
+        shuffled = shuffle_gold_page(item, seed=42, epoch=1, index=7)
+        self.assertEqual(shuffled.candidates[shuffled.target], "記者")
+        self.assertCountEqual(shuffled.candidates, item.candidates)
+
+    def test_anchor_page_is_not_shuffled(self):
+        item = PageExample(
+            reading="きしゃ",
+            context="新聞の",
+            candidates=("記者", "汽車", "貴社", "帰社", "喜捨"),
+            target=0,
+            weight=0.25,
+            is_gold_page=False,
+        )
+        shuffled = shuffle_gold_page(item, seed=42, epoch=9, index=7)
+        self.assertEqual(shuffled, item)
 
 
 if __name__ == "__main__":
