@@ -414,6 +414,77 @@ def pipeline(
     return report["best"]
 
 
+@app.function(
+    image=orchestrator_image,
+    cpu=1.0,
+    memory=1024,
+    timeout=8 * 60 * 60,
+    volumes={"/artifacts": artifacts},
+)
+def resume_qat_v3(
+    teacher_artifact: str = "/artifacts/sarashina_jev/8l_public_quick_v1",
+    student_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v2",
+    train_path: str = "/data/sarashina_jev_public_proxy/train.jsonl",
+    eval_path: str = "/data/sarashina_jev_public_proxy/eval.jsonl",
+    limit: int = 1500,
+    accuracy_gate: float = 0.82,
+):
+    root = "/artifacts/sarashina_jev/int8_recovery"
+    out = f"{root}/qat_v3_weight_only"
+    print(
+        f"RESUME_QAT_V3 teacher={teacher_artifact} student={student_artifact}",
+        flush=True,
+    )
+    qat_train.remote(
+        teacher_artifact,
+        student_artifact,
+        out,
+        train_path,
+        eval_path,
+        3,
+        limit,
+        1e-6,
+        5e-6,
+        5e-5,
+        1.5,
+        0.10,
+        0.25,
+        1.0,
+        False,
+    )
+    report = export_eval.remote(
+        out,
+        train_path,
+        eval_path,
+        f"{out}/onnx_int8",
+        512,
+    )
+    best = _best_compact(report)
+    result = {
+        "stage": "qat_v3_weight_only",
+        **best,
+        "passed_accuracy_gate": best["hit1"] >= accuracy_gate,
+        "next_step": (
+            "vocab_32k_ablation"
+            if best["hit1"] >= accuracy_gate
+            else "continue INT8 recovery before vocabulary pruning"
+        ),
+    }
+    artifacts.reload()
+    report_path = Path(root) / "qat_v3_report.json"
+    report_path.write_text(
+        json.dumps(
+            {"best": result, "report": report},
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    artifacts.commit()
+    print("QAT_V3_DONE", json.dumps(result), flush=True)
+    return result
+
+
 @app.local_entrypoint()
 def main(
     teacher_artifact: str = "/artifacts/sarashina_jev/8l_public_quick_v1",
@@ -421,7 +492,25 @@ def main(
     eval_path: str = "/data/sarashina_jev_public_proxy/eval.jsonl",
     limit: int = 1500,
     accuracy_gate: float = 0.82,
+    resume_v3_only: bool = False,
+    qat_v2_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v2",
 ):
+    if resume_v3_only:
+        call = resume_qat_v3.spawn(
+            teacher_artifact=teacher_artifact,
+            student_artifact=qat_v2_artifact,
+            train_path=train_path,
+            eval_path=eval_path,
+            limit=limit,
+            accuracy_gate=accuracy_gate,
+        )
+        print(
+            f"SPAWNED qat_v3_call_id={call.object_id} "
+            f"student={qat_v2_artifact} gate={accuracy_gate}",
+            flush=True,
+        )
+        return
+
     call = pipeline.spawn(
         teacher_artifact=teacher_artifact,
         train_path=train_path,
