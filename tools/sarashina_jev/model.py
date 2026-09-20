@@ -107,10 +107,10 @@ class SarashinaJevScorer(nn.Module):
         )
         hidden = out.last_hidden_state
         last_index = attention_mask.long().sum(dim=1).clamp_min(1) - 1
-        pooled = hidden[
-            torch.arange(hidden.shape[0], device=hidden.device),
-            last_index,
-        ]
+        gather_index = last_index.view(-1, 1, 1).expand(
+            -1, 1, hidden.shape[-1]
+        )
+        pooled = hidden.gather(1, gather_index).squeeze(1)
         # The pruned backbone may run in bf16/fp16 while the newly-created
         # scalar head intentionally keeps fp32 parameters. Match the input
         # to the head outside autocast too (evaluation/inference).
@@ -182,11 +182,14 @@ class SarashinaJevScorer(nn.Module):
         out_dir: str | Path,
         *,
         torch_dtype: torch.dtype | None = None,
+        attn_implementation: str | None = None,
     ) -> tuple["SarashinaJevScorer", Any, dict[str, Any]]:
         out = Path(out_dir)
         kwargs: dict[str, Any] = {}
         if torch_dtype is not None:
             kwargs["torch_dtype"] = torch_dtype
+        if attn_implementation is not None:
+            kwargs["attn_implementation"] = attn_implementation
         backbone = AutoModel.from_pretrained(out / "backbone", **kwargs)
         model = cls(backbone)
         state = torch.load(
