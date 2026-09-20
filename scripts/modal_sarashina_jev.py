@@ -19,23 +19,28 @@ import modal
 
 app = modal.App("mozc-sarashina-jev")
 
-base_image = (
+base_deps = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
         "datasets>=3.0",
         "SudachiPy>=0.6",
         "sudachidict_core",
     )
-    .add_local_dir("tools", "/root/repo/tools")
 )
 
-train_image = base_image.pip_install(
-    "torch",
-    "transformers>=4.48,<5",
-    "tokenizers>=0.21,<0.23",
-    "sentencepiece>=0.2",
-    "safetensors>=0.4",
-    "accelerate>=0.28",
+base_image = base_deps.add_local_dir("tools", "/root/repo/tools")
+
+train_image = (
+    base_deps
+    .pip_install(
+        "torch",
+        "transformers>=4.48,<5",
+        "tokenizers>=0.21,<0.23",
+        "sentencepiece>=0.2",
+        "safetensors>=0.4",
+        "accelerate>=0.28",
+    )
+    .add_local_dir("tools", "/root/repo/tools")
 )
 
 artifacts = modal.Volume.from_name("mozc-artifacts", create_if_missing=True)
