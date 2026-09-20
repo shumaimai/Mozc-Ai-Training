@@ -84,3 +84,44 @@ Report at minimum:
 - total and trainable parameter counts.
 
 Do not shrink the tokenizer/vocabulary in this first experiment. Layer pruning and LM-head removal should be isolated first; vocabulary compression comes only after we know whether language understanding survives.
+
+
+## Modal (recommended when away from the GPU machine)
+
+The PoC branch includes `scripts/modal_sarashina_jev.py`.
+
+Keep training data in a persistent Modal Volume instead of embedding it in every image:
+
+```bash
+modal volume create mozc-training-data
+
+modal volume put mozc-training-data \
+  data/public/rerank_ctx/train_v2.jsonl \
+  /train_v2.jsonl
+
+modal volume put mozc-training-data \
+  data/public/rerank_ctx/eval_unseen_v2.jsonl \
+  /eval_unseen_v2.jsonl
+```
+
+Then launch the 12-layer smoke run:
+
+```bash
+modal run scripts/modal_sarashina_jev.py \
+  --keep-layers 12 \
+  --train-last-n-layers 4 \
+  --page-size 5 \
+  --limit 2000 \
+  --out /artifacts/sarashina_jev/12l_smoke
+```
+
+The local entrypoint uses `spawn()`, so the GPU function continues independently after the launcher exits. The default GPU is L4. Artifacts persist in `mozc-artifacts`, model downloads in `hf-cache`, and datasets in `mozc-training-data`.
+
+Inspect later:
+
+```bash
+modal volume ls mozc-artifacts /sarashina_jev/12l_smoke
+modal volume get mozc-artifacts /sarashina_jev/12l_smoke ./12l_smoke
+```
+
+If the dataset filenames differ, override `--train-path` and `--eval-path`.
