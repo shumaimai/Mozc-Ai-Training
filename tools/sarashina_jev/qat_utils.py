@@ -57,9 +57,15 @@ def fake_quant_affine_tensor(
 
 
 class FakeQuantLinear(nn.Linear):
-    """nn.Linear-compatible QAT wrapper with INT8-like weights/activations."""
+    """nn.Linear-compatible QAT wrapper.
+
+    By default this mimics weight-only dynamic INT8: weights are fake-quantized
+    while activations stay floating point. Activation fake quantization can be
+    enabled explicitly for QDQ-style training.
+    """
 
     qat_strength: float
+    quantize_activations: bool
 
     @classmethod
     def from_linear(cls, module: nn.Linear) -> "FakeQuantLinear":
@@ -80,13 +86,22 @@ class FakeQuantLinear(nn.Linear):
                 requires_grad=module.bias.requires_grad,
             )
         out.qat_strength = 1.0
+        out.quantize_activations = False
         return out
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        xq = fake_quant_affine_tensor(input, strength=self.qat_strength)
+        xq = (
+            fake_quant_affine_tensor(input, strength=self.qat_strength)
+            if self.quantize_activations
+            else input
+        )
         wq = fake_quant_symmetric_rows(self.weight, strength=self.qat_strength)
         out = F.linear(xq, wq, self.bias)
-        return fake_quant_affine_tensor(out, strength=self.qat_strength)
+        return (
+            fake_quant_affine_tensor(out, strength=self.qat_strength)
+            if self.quantize_activations
+            else out
+        )
 
 
 class FakeQuantEmbedding(nn.Embedding):
@@ -165,3 +180,10 @@ def qat_module_counts(module: nn.Module) -> dict[str, int]:
         "fake_quant_linear": sum(isinstance(x, FakeQuantLinear) for x in module.modules()),
         "fake_quant_embedding": sum(isinstance(x, FakeQuantEmbedding) for x in module.modules()),
     }
+
+
+def set_qat_activation_quantization(module: nn.Module, enabled: bool) -> None:
+    """Toggle activation fake quantization for all fake-quant Linear layers."""
+    for child in module.modules():
+        if isinstance(child, FakeQuantLinear):
+            child.quantize_activations = bool(enabled)
