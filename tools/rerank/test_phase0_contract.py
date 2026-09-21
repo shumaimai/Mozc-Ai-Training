@@ -14,6 +14,7 @@ from tools.rerank.contextual_ranking_v2_contract import (
 
 
 FIXTURE = Path(__file__).parents[2] / "tests/fixtures/contextual_ranking_v2/cases.jsonl"
+REPLAY_FIXTURE = FIXTURE.parent / "actual_mozc_multisegment_replay.json"
 
 
 class Phase0ContractTest(unittest.TestCase):
@@ -39,6 +40,12 @@ class Phase0ContractTest(unittest.TestCase):
     def test_v2_formatter_is_explicitly_versioned(self):
         self.assertEqual(FORMAT_VERSION, "contextual-ranking-v2-format-v1")
         self.assertEqual(format_v2("きしゃ", "駅に", "汽車"), format_v1_runtime("きしゃ", "駅に", "汽車"))
+
+    def test_actual_mozc_multisegment_replay_fixture(self):
+        row = json.loads(REPLAY_FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(row["result"], "actual_converter_multisegment_replay_pass")
+        self.assertEqual(row["scored_segment_index"], row["target_segment_index"])
+        self.assertEqual(row["commit_operation"]["committed_candidate"], "汽車")
 
 
 if __name__ == "__main__":

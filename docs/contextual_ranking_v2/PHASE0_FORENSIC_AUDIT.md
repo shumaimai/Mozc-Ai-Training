@@ -50,9 +50,11 @@ reads the committed candidate from that same index. The log schema includes
 `final_top1`, and `committed_candidate`; raw context is omitted by default.
 
 `MultiSegmentLogUsesScoredTargetSegment` covers the two-segment compatibility
-fixture. An actual converter replay could not be built in this environment
-(Bazel/Bazelisk unavailable); this limitation is recorded without fabricating
-N-best evidence in `raw/phase0i_multisegment_replay.json`.
+path, and the pinned Mozc converter was then built with Bazelisk. The actual
+replay `startconversion 駅にきしゃ` produced two segments; target segment 1
+had a 30-candidate N-best, and `commit 1 2` committed `汽車` from segment 1.
+The replay evidence is in `tests/fixtures/contextual_ranking_v2/actual_mozc_multisegment_replay.json`
+and `raw/phase0i_multisegment_replay.json`.
 
 ## 3. Context parity
 
@@ -146,8 +148,6 @@ v1 is made.
 
 ## Remaining follow-ups
 
-- Run the actual Mozc converter multi-segment replay in an environment with a
-  working pinned Mozc/Bazel build.
 - Re-run the same latency matrix on the intended i7-1060NG7 when available;
   do not mix host results.
 - Add a request/session ID if any future integration can move Finish across

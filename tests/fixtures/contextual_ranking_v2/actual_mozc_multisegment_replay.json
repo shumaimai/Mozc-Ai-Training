@@ -1,12 +1,21 @@
 {
-  "phase": "0-B-closure",
-  "status": "actual_converter_replay_pass",
+  "fixture_id": "actual_mozc_converter_eki_kishya",
   "pinned_mozc_revision": "13c98988247aa711d99db9e348ec2a597d14b5cd",
   "build_command": "cd <mozc>/src && bazelisk build //converter:converter_main",
   "run_command": "printf 'startconversion 駅にきしゃ\\ncommit 1 2\\nfinish\\n' | bazelisk run //converter:converter_main -- --engine_name=oss --max_conversion_candidates_size=30",
   "segments_before_commit": [
-    {"index": 0, "key": "駅に", "top1": "駅に"},
-    {"index": 1, "key": "きしゃ", "top1": "記者", "nbest_prefix": ["記者", "貴社", "汽車", "帰社", "騎射", "喜捨"], "candidate_count": 30}
+    {
+      "index": 0,
+      "key": "駅に",
+      "top1": "駅に"
+    },
+    {
+      "index": 1,
+      "key": "きしゃ",
+      "top1": "記者",
+      "nbest_prefix": ["記者", "貴社", "汽車", "帰社", "騎射", "喜捨"],
+      "candidate_count": 30
+    }
   ],
   "scored_segment_index": 1,
   "target_segment_index": 1,
