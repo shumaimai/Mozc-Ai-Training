@@ -28,6 +28,8 @@ def validate_row(row: dict[str, Any]) -> list[str]:
             errs.append(f"missing:{k}")
     if "nbest" in row and not isinstance(row["nbest"], list):
         errs.append("nbest_not_list")
+    if "candidate_metadata" in row and not isinstance(row["candidate_metadata"], list):
+        errs.append("candidate_metadata_not_list")
     return errs
 
 

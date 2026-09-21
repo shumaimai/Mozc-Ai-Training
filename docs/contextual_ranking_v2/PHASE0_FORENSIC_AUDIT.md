@@ -141,10 +141,10 @@ preceding text is evidence only and is not persisted in the default online log.
 
 ## 8. Phase 1 decision
 
-**Phase 1 may begin contract/schema implementation only.** Model training and
-Dataset v2 generation remain explicitly out of scope until a separate Phase 1
-approval. The formatter is provisional by design; no claim of superiority over
-v1 is made.
+**Phase 1 contract/schema implementation has begun.** Model training and
+Dataset v2 generation remain explicitly out of scope until a separate approval.
+Details are in `PHASE1_CONTRACT.md`. The formatter is provisional by design;
+no claim of superiority over v1 is made.
 
 ## Remaining follow-ups
 

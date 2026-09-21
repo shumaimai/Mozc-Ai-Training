@@ -59,6 +59,15 @@ CONVERSION_LOG_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "description": "Mozc candidate list before/after rerank (store pre-rerank native list)",
         },
+        "candidate_metadata": {
+            "type": "array",
+            "optional": True,
+            "description": "Actual Mozc candidate metadata; required for Dataset v2 reconstruction.",
+            "items": {
+                "type": "object",
+                "required": ["surface", "rank", "cost", "cost_delta", "lid", "rid", "attributes", "category", "converted_segment_count", "protection"],
+            },
+        },
         "chosen": {"type": "string", "description": "surface the user committed"},
         "context_prev": {"type": "string", "optional": True, "description": "left context if available"},
         "rerank_top1": {"type": "string", "optional": True},

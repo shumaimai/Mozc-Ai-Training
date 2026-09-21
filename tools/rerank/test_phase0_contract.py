@@ -11,6 +11,11 @@ from tools.rerank.contextual_ranking_v2_contract import (
     format_v1_train,
     format_v2,
 )
+from tools.rerank.contextual_ranking_v2_schema import (
+    FORMAT_VERSION as RECORD_FORMAT_VERSION,
+    SCHEMA_VERSION,
+    validate_record,
+)
 
 
 FIXTURE = Path(__file__).parents[2] / "tests/fixtures/contextual_ranking_v2/cases.jsonl"
@@ -46,6 +51,36 @@ class Phase0ContractTest(unittest.TestCase):
         self.assertEqual(row["result"], "actual_converter_multisegment_replay_pass")
         self.assertEqual(row["scored_segment_index"], row["target_segment_index"])
         self.assertEqual(row["commit_operation"]["committed_candidate"], "汽車")
+
+    def test_phase1_record_schema_rejects_surface_only_records(self):
+        record = {
+            "schema_version": SCHEMA_VERSION,
+            "format_version": RECORD_FORMAT_VERSION,
+            "source_id": "fixture:1",
+            "reading": "きしゃ",
+            "context_prev": "駅に",
+            "gold": "汽車",
+            "target_segment_index": 1,
+            "candidates": [{"surface": "汽車"}],
+        }
+        self.assertIn("candidate_missing:attributes", validate_record(record))
+
+    def test_phase1_record_schema_accepts_metadata_complete_record(self):
+        record = {
+            "schema_version": SCHEMA_VERSION,
+            "format_version": RECORD_FORMAT_VERSION,
+            "source_id": "fixture:1",
+            "reading": "きしゃ",
+            "context_prev": "駅に",
+            "gold": "汽車",
+            "target_segment_index": 1,
+            "candidates": [{
+                "surface": "汽車", "rank": 0, "cost": 100, "cost_delta": 0,
+                "lid": 1, "rid": 2, "attributes": 0, "category": "DEFAULT",
+                "converted_segment_count": 1, "protection": "NORMAL",
+            }],
+        }
+        self.assertEqual(validate_record(record), [])
 
 
 if __name__ == "__main__":
