@@ -75,10 +75,53 @@
       }
     }
   },
+  "layer_ablation_64000": {
+    "teacher_8l": {
+      "kept_layer_indices": [0, 3, 7, 10, 13, 16, 20, 23],
+      "existing_eval_hit1": 0.8137254901960784,
+      "fresh_holdout_hit1": 0.6125,
+      "size_mib": 326.06349658966064,
+      "p50_ms": 157.82476050000048,
+      "p95_ms": 161.177772999999,
+      "parameter_count": null
+    },
+    "student_6l_qat_v2": {
+      "kept_layer_indices": [0, 3, 10, 13, 20, 23],
+      "existing_eval_hit1": 0.8088235294117647,
+      "fresh_holdout_hit1": 0.58125,
+      "size_mib": 283.65014362335205,
+      "p50_ms": 120.28472400000112,
+      "p95_ms": 122.35390624999525,
+      "parameter_count": 214648321,
+      "embedding_parameters": 81920000,
+      "qat_fake_int8_existing_eval_hit1": 0.7892156862745098
+    },
+    "delta_student_minus_teacher": {
+      "existing_eval_hit1_points": -0.4901960784313726,
+      "fresh_holdout_hit1_points": -3.125,
+      "p50_speedup_fraction": 0.2378056325703566,
+      "size_reduction_mib": 42.413352966308594
+    },
+    "environment": {
+      "onnxruntime_version": "1.20.1",
+      "threads": 8,
+      "inter_op_threads": 1,
+      "cpu_model_reported": "unknown",
+      "same_cpu_anomaly": "Both 8L and 6L mixed INT8 runs collapsed on one CPU/container; see raw/same_cpu_comparison.json. Fresh-container values above are authoritative."
+    },
+    "holdout": {
+      "dataset": "data/public/sarashina_jev_6l_holdout/holdout.jsonl",
+      "pages": 800,
+      "source_id_overlap_count": 0,
+      "provenance": "data/public/sarashina_jev_6l_holdout/holdout_meta.json"
+    }
+  },
   "decision": {
     "recommended_vocab_size": 64000,
     "proceed_to_32000": false,
     "next_optional_vocab_size": 56000,
-    "reason": "48k lost 5 of 204 INT8 decisions versus 64k, increased token length by 8.18%, and did not improve fresh-container latency"
+    "reason": "48k lost 5 of 204 INT8 decisions versus 64k, increased token length by 8.18%, and did not improve fresh-container latency",
+    "six_layer_64k": "conditional_candidate",
+    "six_layer_reason": "Size is 283.65 MiB and fresh-container p50 is 23.78% faster, while existing eval loses only 0.49 points; however fresh holdout loses 3.125 points versus the 8L teacher, so do not replace the 8L production candidate yet."
   }
 }

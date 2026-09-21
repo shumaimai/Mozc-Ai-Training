@@ -19,6 +19,27 @@ latency in the fresh-container measurements, so the experiment did not proceed
 to 32k. A 56k compromise is the next useful vocabulary point if this line of
 work continues.
 
+## 64k 8L→6L distillation/QAT experiment
+
+The fresh public holdout contains 800 pages from non-overlapping Wikipedia
+articles; `source_id_overlap_count=0` with the existing 1,796/204 train/eval
+rows. The 6L student selected original layers `[0,3,10,13,20,23]` from the
+64k teacher's `[0,3,7,10,13,16,20,23]`, then ran 3 epochs of CE+KL+centered
+score-MSE+margin distillation followed by 2 epochs of activation-fake-quant
+QAT v2 refinement.
+
+| Deployment model | Existing eval | Fresh holdout | Size | p50 | p95 |
+|---|---:|---:|---:|---:|---:|
+| 8L teacher, dynamic INT8 + FP16 embedding | 81.3725% | 61.2500% | 326.06 MiB | 157.82 ms | 161.18 ms |
+| **6L QAT v2, dynamic INT8 + FP16 embedding** | **80.8824%** | **58.1250%** | **283.65 MiB** | **120.28 ms** | **122.35 ms** |
+
+The 6L model is a **conditional candidate**, not a replacement: it meets the
+size target, is 23.78% faster on the fresh CPU revalidation, and loses only
+0.49 points on the existing eval, but loses 3.125 points on the untouched
+holdout. Same-container INT8 values are preserved but invalid for quality
+judgment because both teacher and student reproduce the known ORT CPU-kernel
+collapse.
+
 Latency across the historical 102.4k run and fresh 64k/48k revalidations is not
 strictly comparable because Modal assigned different CPU classes. The 64k and
 48k fresh revalidations were both about 163 ms, so vocabulary reduction should
@@ -47,6 +68,11 @@ are the anomalous runs and are **not** the authoritative accuracy values. Use
   the original 102.4k ONNX benchmark report.
 - `raw/vocab_64000/`: unmodified 64k prune/export reports.
 - `raw/vocab_48000/`: unmodified 48k prune/export reports.
+- `raw/6l_64k_v1/`: 6L layer metadata, distillation/QAT checkpoints, both
+  unmodified export reports, same-container anomaly, fresh revalidation, and
+  the 64k tokenizer files.
+- [`data/public/sarashina_jev_6l_holdout`](../../../data/public/sarashina_jev_6l_holdout):
+  exact 800-row holdout, provenance, and checksum.
 - `raw/fresh_revalidation.json`: exact fresh-container evaluation stdout values.
 - `raw/onnx_compare_64000.json`: graph/initializer/embedding comparison used to
   isolate the CPU-dependent INT8 anomaly.

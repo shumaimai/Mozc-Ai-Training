@@ -1,0 +1,206 @@
+{
+  "args": {
+    "teacher_artifact": "/artifacts/sarashina_jev/vocab_ablation/64000",
+    "student_artifact": "/artifacts/sarashina_jev/6l_64k_v1/student_6l_init",
+    "train": "/data/sarashina_jev_public_proxy/train.jsonl",
+    "eval": "/data/sarashina_jev_public_proxy/eval.jsonl",
+    "eval_holdout": "/artifacts/sarashina_jev/6l_64k_v1/holdout_public/holdout.jsonl",
+    "out": "/artifacts/sarashina_jev/6l_64k_v1/student_6l_distilled",
+    "limit": 0,
+    "epochs": 3,
+    "batch_size": 2,
+    "grad_accum": 4,
+    "backbone_lr": 3e-06,
+    "head_lr": 0.0001,
+    "weight_decay": 0.01,
+    "kd_weight": 1.0,
+    "mse_weight": 0.1,
+    "margin_weight": 0.1,
+    "temperature": 2.0,
+    "seed": 42
+  },
+  "teacher_meta": {
+    "source_model": "sbintuitions/sarashina2.2-0.5b",
+    "kept_layer_indices": [
+      0,
+      3,
+      7,
+      10,
+      13,
+      16,
+      20,
+      23
+    ],
+    "page_size": 5,
+    "pooling": "last_non_padding_token",
+    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+    "lm_head": false,
+    "autoregressive_generation": false,
+    "vocab_pruning": {
+      "strategy": "low_id_prefix_plus_required_tail",
+      "original_vocab_size": 102400,
+      "target_vocab_size": 64000,
+      "removed_pieces": 38400,
+      "unchanged_prefix_size": 63997,
+      "remapped_required_pieces": [
+        {
+          "old_id": 102397,
+          "new_id": 63997,
+          "piece": "<|prefix|>",
+          "type": 3
+        },
+        {
+          "old_id": 102398,
+          "new_id": 63998,
+          "piece": "<|suffix|>",
+          "type": 3
+        },
+        {
+          "old_id": 102399,
+          "new_id": 63999,
+          "piece": "<|middle|>",
+          "type": 3
+        }
+      ],
+      "embedding": {
+        "original_params": 131072000,
+        "target_params": 81920000,
+        "removed_params": 49152000,
+        "fp32_saved_mib": 187.5,
+        "fp16_saved_mib": 93.75
+      },
+      "special_ids": {
+        "unk": 0,
+        "bos": 1,
+        "eos": 2,
+        "pad": 3
+      },
+      "tokenizer_probe": {
+        "samples": 1020,
+        "changed_fraction": 0.4823529411764706,
+        "old_avg_tokens": 34.30196078431373,
+        "new_avg_tokens": 35.27156862745098,
+        "token_length_ratio": 1.0282668343432033,
+        "max_token_length_ratio": 1.25,
+        "old_unk_tokens": 0,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    }
+  },
+  "student_init_meta": {
+    "source_model": "sbintuitions/sarashina2.2-0.5b",
+    "kept_layer_indices": [
+      0,
+      3,
+      10,
+      13,
+      20,
+      23
+    ],
+    "page_size": 5,
+    "pooling": "last_non_padding_token",
+    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+    "lm_head": false,
+    "autoregressive_generation": false,
+    "layer_pruning": {
+      "source_artifact": "/artifacts/sarashina_jev/vocab_ablation/64000",
+      "source_kept_layer_indices": [
+        0,
+        3,
+        7,
+        10,
+        13,
+        16,
+        20,
+        23
+      ],
+      "selected_positions": [
+        0,
+        1,
+        3,
+        4,
+        6,
+        7
+      ],
+      "selected_original_layer_indices": [
+        0,
+        3,
+        10,
+        13,
+        20,
+        23
+      ],
+      "selection": "even_positions_with_first_and_last"
+    },
+    "parameter_report": {
+      "total": 214648321,
+      "trainable": 214648321,
+      "embedding": 81920000
+    }
+  },
+  "teacher_eval": {
+    "hit1": 0.8431372549019608,
+    "pages": 204
+  },
+  "teacher_holdout": {
+    "hit1": 0.61625,
+    "pages": 800
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "losses": {
+        "loss": 1.608720343759105,
+        "ce": 0.4272399677465647,
+        "kd": 0.416734021366522,
+        "mse": 2.2360856732838936,
+        "margin": 5.411377691412822
+      },
+      "student_eval": {
+        "hit1": 0.8137254901960784,
+        "pages": 204
+      },
+      "student_holdout": {
+        "hit1": 0.59875,
+        "pages": 800
+      }
+    },
+    {
+      "epoch": 2,
+      "losses": {
+        "loss": 0.736492551637104,
+        "ce": 0.31176487606989517,
+        "kd": 0.15387201896608851,
+        "mse": 0.9183484486704547,
+        "margin": 1.7902080703335908
+      },
+      "student_eval": {
+        "hit1": 0.8284313725490197,
+        "pages": 204
+      },
+      "student_holdout": {
+        "hit1": 0.59875,
+        "pages": 800
+      }
+    },
+    {
+      "epoch": 3,
+      "losses": {
+        "loss": 0.5816704767189903,
+        "ce": 0.27447010367644126,
+        "kd": 0.10868446967271021,
+        "mse": 0.6804990537862868,
+        "margin": 1.304659919692971
+      },
+      "student_eval": {
+        "hit1": 0.8284313725490197,
+        "pages": 204
+      },
+      "student_holdout": {
+        "hit1": 0.60125,
+        "pages": 800
+      }
+    }
+  ]
+}
