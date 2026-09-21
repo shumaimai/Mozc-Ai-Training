@@ -143,6 +143,73 @@ def evaluate_onnx(
     }
 
 
+def make_fp16_embedding_model(src: Path, dst: Path) -> dict:
+    """Store token embedding weights in FP16 and cast Gather output back to FP32.
+
+    This keeps the transformer path numerically FP32 before dynamic INT8
+    quantization while halving the dominant 102,400 x hidden embedding table.
+    """
+    import onnx
+    from onnx import TensorProto, helper, numpy_helper
+
+    model = onnx.load(str(src), load_external_data=True)
+    initializers = {init.name: init for init in model.graph.initializer}
+    converted = []
+    new_nodes = []
+
+    for node in model.graph.node:
+        if node.op_type != "Gather" or not node.input:
+            new_nodes.append(node)
+            continue
+        init = initializers.get(node.input[0])
+        if init is None or init.data_type != TensorProto.FLOAT:
+            new_nodes.append(node)
+            continue
+
+        array = numpy_helper.to_array(init)
+        # Only treat large 2-D Gather tables as token embeddings; skip tiny
+        # constants/position helpers that may also use Gather.
+        if array.ndim != 2 or array.shape[0] < 10000:
+            new_nodes.append(node)
+            continue
+
+        fp16 = array.astype(np.float16)
+        replacement = numpy_helper.from_array(fp16, name=init.name)
+        init.CopyFrom(replacement)
+
+        original_outputs = list(node.output)
+        if len(original_outputs) != 1:
+            new_nodes.append(node)
+            continue
+        original = original_outputs[0]
+        fp16_out = original + "__fp16_embedding"
+        node.output[0] = fp16_out
+        new_nodes.append(node)
+        cast = helper.make_node(
+            "Cast",
+            inputs=[fp16_out],
+            outputs=[original],
+            to=TensorProto.FLOAT,
+            name=(node.name + "_cast_fp32") if node.name else "embedding_cast_fp32",
+        )
+        new_nodes.append(cast)
+        converted.append(
+            {
+                "initializer": init.name,
+                "shape": list(array.shape),
+                "elements": int(array.size),
+            }
+        )
+
+    del model.graph.node[:]
+    model.graph.node.extend(new_nodes)
+    onnx.save(model, str(dst))
+    return {
+        "converted": converted,
+        "count": len(converted),
+    }
+
+
 def find_score_head_nodes(model_path: Path) -> list[str]:
     """Find the final Gemm/MatMul feeding the exported scores output."""
     try:
@@ -222,6 +289,8 @@ def main() -> int:
 
     fp32_path = out / "sarashina_jev_fp32.onnx"
     dynamic_path = out / "sarashina_jev_int8_dynamic.onnx"
+    fp16_embedding_path = out / "sarashina_jev_fp16_embedding.onnx"
+    dynamic_fp16_embedding_path = out / "sarashina_jev_int8_dynamic_fp16_embedding.onnx"
     dynamic_gather_path = out / "sarashina_jev_int8_dynamic_gather.onnx"
     static_path = out / "sarashina_jev_int8_qdq.onnx"
 
@@ -260,6 +329,24 @@ def main() -> int:
     score_head_nodes = find_score_head_nodes(fp32_path)
     if score_head_nodes:
         print(f"leave score head in float nodes={score_head_nodes}", flush=True)
+
+    print(f"convert token embedding FP32 -> FP16 -> {fp16_embedding_path}", flush=True)
+    fp16_embedding_info = make_fp16_embedding_model(fp32_path, fp16_embedding_path)
+    print(f"fp16_embedding {json.dumps(fp16_embedding_info)}", flush=True)
+
+    print(
+        f"dynamic INT8 MatMul/Gemm + FP16 embedding -> {dynamic_fp16_embedding_path}",
+        flush=True,
+    )
+    quantize_dynamic(
+        model_input=str(fp16_embedding_path),
+        model_output=str(dynamic_fp16_embedding_path),
+        weight_type=QuantType.QInt8,
+        per_channel=True,
+        reduce_range=False,
+        op_types_to_quantize=["MatMul", "Gemm"],
+        nodes_to_exclude=score_head_nodes,
+    )
 
     print(f"dynamic INT8 MatMul/Gemm -> {dynamic_path}", flush=True)
     quantize_dynamic(
@@ -315,7 +402,9 @@ def main() -> int:
     reports = {}
     model_variants = [
         ("fp32", fp32_path),
+        ("fp16_embedding", fp16_embedding_path),
         ("int8_dynamic", dynamic_path),
+        ("int8_dynamic_fp16_embedding", dynamic_fp16_embedding_path),
     ]
     if dynamic_gather_path.exists():
         model_variants.append(("int8_dynamic_gather", dynamic_gather_path))
@@ -341,7 +430,13 @@ def main() -> int:
             print(f"{name} evaluation failed: {exc}", flush=True)
 
     fp_hit = reports.get("fp32", {}).get("hit1")
-    for name in ("int8_dynamic", "int8_dynamic_gather", "int8_qdq"):
+    for name in (
+        "fp16_embedding",
+        "int8_dynamic",
+        "int8_dynamic_fp16_embedding",
+        "int8_dynamic_gather",
+        "int8_qdq",
+    ):
         hit = reports.get(name, {}).get("hit1")
         if fp_hit is not None and hit is not None:
             reports[name]["delta_hit1_vs_fp32"] = hit - fp_hit
@@ -354,6 +449,7 @@ def main() -> int:
         "calib_pages": min(args.calib_pages, len(calib_ds)),
         "eval_pages": len(eval_ds),
         "models": reports,
+        "fp16_embedding_info": fp16_embedding_info,
         "dynamic_gather_error": dynamic_gather_error,
         "preferred_if_accuracy_holds": "smallest INT8 variant within the accuracy gate",
         "note": (
