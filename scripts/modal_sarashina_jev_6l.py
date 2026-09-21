@@ -280,6 +280,37 @@ def export_and_compare(
     return report
 
 
+@app.function(
+    image=export_image,
+    cpu=8.0,
+    memory=32768,
+    timeout=4 * 60 * 60,
+    volumes={"/artifacts": artifacts, "/data": training_data},
+)
+def fresh_revalidate(
+    out: str = ROOT + "/comparison/fresh_revalidation.json",
+):
+    """Re-run only the deployment model in a fresh CPU container.
+
+    This complements same-container measurements because ORT INT8 kernels have
+    previously shown CPU/container-dependent numerical failures.
+    """
+    artifacts.reload()
+    training_data.reload()
+    comparison = Path(ROOT) / "comparison"
+    _run(
+        [sys.executable, "-m", "tools.sarashina_jev.evaluate_onnx_sets",
+         "--model", f"teacher_8l={comparison}/teacher_8l_export/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+         "--model", f"student_6l={comparison}/student_6l_export/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+         "--tokenizer", f"teacher_8l={comparison}/teacher_8l_export/tokenizer",
+         "--tokenizer", f"student_6l={comparison}/student_6l_export/tokenizer",
+         "--dataset", f"existing_eval={EVAL}", "--dataset", f"fresh_holdout={HOLDOUT}",
+         "--threads", "8", "--warmup", "10", "--out", out]
+    )
+    artifacts.commit()
+    return json.loads(Path(out).read_text(encoding="utf-8"))
+
+
 @app.function(image=orchestrator_image, cpu=1.0, memory=2048, timeout=24 * 60 * 60, volumes={"/artifacts": artifacts})
 def experiment():
     holdout = generate_holdout.remote()
