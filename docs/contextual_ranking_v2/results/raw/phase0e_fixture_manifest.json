@@ -1,0 +1,8 @@
+{
+  "phase": "0-E",
+  "status": "complete",
+  "path": "tests/fixtures/contextual_ranking_v2/cases.jsonl",
+  "case_count": 10,
+  "fields": ["reading", "raw_preceding_text", "cleaned_context", "candidates", "target_segment", "expected_format"],
+  "coverage": ["駅に + きしゃ", "新聞の + きしゃ", "mainに + まーじ", "short reading", "numbers", "punctuation", "multi-segment", "empty context", "kana normalization", "sentence clipping"]
+}

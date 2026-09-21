@@ -1,0 +1,15 @@
+{
+  "phase": "0-F",
+  "status": "contract_defined",
+  "context_policy": {
+    "source": "Mozc preceding text plus reconstructable history",
+    "cleaning": "newline/tab normalization, wiki markup removal, active sentence selection",
+    "max_unicode_chars": 50,
+    "future_text": false
+  },
+  "python_source": "tools/rerank/context_clip.py::clean_context",
+  "cpp_source": "Mozc-Ai/mozc_compat/context_clip.cc::CleanContext",
+  "parity_test": "tools/rerank/test_context_clip_parity.py",
+  "formatter_contract": "tests/fixtures/contextual_ranking_v2/cases.jsonl expected_format",
+  "note": "A real Mozc C++ build is required to execute the CLI parity test; no model training is needed."
+}

@@ -1,0 +1,86 @@
+{
+  "phase": "0-D",
+  "status": "complete",
+  "model": "sbintuitions/modernbert-ja-30m",
+  "cpu_model": "Intel(R) Core(TM) i7-1060NG7 CPU @ 1.20GHz",
+  "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+  "logical_cores": 8,
+  "ort_version": "1.30.0",
+  "threads": {
+    "intra": 1,
+    "inter": 1
+  },
+  "warmup": 10,
+  "n": 60,
+  "model_size_bytes": 147058612,
+  "configurations": [
+    {
+      "candidate_count": 5,
+      "padding": "longest",
+      "max_len": 128,
+      "effective_seq": {
+        "p50": 33.5,
+        "p95": 37.0,
+        "max": 37
+      },
+      "latency": {
+        "n": 60,
+        "p50_ms": 43.43844349932624,
+        "p95_ms": 47.51681084962911,
+        "max_ms": 48.66726900218055,
+        "mean_ms": 43.11898353371362
+      }
+    },
+    {
+      "candidate_count": 30,
+      "padding": "longest",
+      "max_len": 128,
+      "effective_seq": {
+        "p50": 34.5,
+        "p95": 38.0,
+        "max": 38
+      },
+      "latency": {
+        "n": 60,
+        "p50_ms": 294.3913499984774,
+        "p95_ms": 873.1803656020924,
+        "max_ms": 1177.3903709981823,
+        "mean_ms": 344.471102083844
+      }
+    },
+    {
+      "candidate_count": 5,
+      "padding": "max_length",
+      "max_len": 128,
+      "effective_seq": {
+        "p50": 128.0,
+        "p95": 128.0,
+        "max": 128
+      },
+      "latency": {
+        "n": 60,
+        "p50_ms": 192.3998849997588,
+        "p95_ms": 501.39202950122046,
+        "max_ms": 1031.279906994314,
+        "mean_ms": 235.516775416545
+      }
+    },
+    {
+      "candidate_count": 30,
+      "padding": "max_length",
+      "max_len": 128,
+      "effective_seq": {
+        "p50": 128.0,
+        "p95": 128.0,
+        "max": 128
+      },
+      "latency": {
+        "n": 60,
+        "p50_ms": 1241.1205404969223,
+        "p95_ms": 2089.6378772042226,
+        "max_ms": 2109.9816460045986,
+        "mean_ms": 1476.3915683170733
+      }
+    }
+  ]
+}

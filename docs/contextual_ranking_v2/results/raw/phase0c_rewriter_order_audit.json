@@ -1,0 +1,31 @@
+{
+  "phase": "0-C",
+  "status": "complete_design_audit",
+  "sources": {
+    "upstream": "google/mozc master src/rewriter/rewriter.cc fetched 2026-09-21",
+    "v1_integration": "Mozc-Ai scripts/integrate_mozc.py and v1.0.0 integration history"
+  },
+  "current_order": {
+    "upstream_relevant": ["UserDictionaryRewriter", "... deterministic rewriters ...", "UserBoundaryHistoryRewriter", "UserSegmentHistoryRewriter", "...", "CorrectionRewriter", "RemoveRedundantCandidateRewriter", "A11yDescriptionRewriter"],
+    "v1_rerank": "RerankRewriter appended after A11yDescriptionRewriter (chain tail)"
+  },
+  "risk": [
+    "A tail reranker can overwrite a candidate promoted by explicit user segment history.",
+    "UserDictionary candidates are upstream and should remain eligible, but neural output must not erase explicit user preference.",
+    "Number, punctuation, and CONTEXT_SENSITIVE candidates require deterministic protection before neural correction."
+  ],
+  "attribute_audit": {
+    "RERANKED": "must be treated as a diagnostic/source marker, not permission to override user history",
+    "USER_SEGMENT_HISTORY_REWRITER": "higher authority than contextual AI",
+    "user_dictionary": "preserve upstream candidate and metadata; do not synthesize replacements",
+    "number_punctuation_context_sensitive": "guard or hard-protect in v2 contract"
+  },
+  "v2_recommended_order": [
+    "upstream Mozc candidate generation and deterministic rewriters",
+    "contextual RerankRewriter as a correction/delta stage",
+    "UserBoundaryHistoryRewriter",
+    "UserSegmentHistoryRewriter",
+    "final safety cleanup"
+  ],
+  "decision": "Do not perform a broad chain reorder in Phase 0. Phase 1 must add an attribute-aware hard constraint and verify the exact upstream chain in a real Mozc build."
+}
