@@ -1,0 +1,168 @@
+{
+  "phase": "1-pilot",
+  "status": "complete",
+  "dataset_v2_generated": true,
+  "model_training_started": false,
+  "schema_version": "contextual-ranking-v2-record-v1",
+  "format_version": "contextual-ranking-v2-format-v1",
+  "seed": 20260921,
+  "split": {
+    "train": {
+      "rows": 3637,
+      "docs": 83
+    },
+    "validation": {
+      "rows": 260,
+      "docs": 6
+    },
+    "test": {
+      "rows": 471,
+      "docs": 11
+    }
+  },
+  "metrics": {
+    "rows": 4368,
+    "docs": 100,
+    "workers": 8,
+    "elapsed_sec": 9.9013728860009,
+    "rows_per_sec": 441.15094444889723,
+    "docs_per_sec": 10.099609534086476,
+    "eta_sec": 0,
+    "mozc_top1_accuracy": 0.7852564102564102,
+    "top5_oracle_coverage": 0.9503205128205128,
+    "per_document_examples": {
+      "min": 32,
+      "median": 44.5,
+      "max": 50,
+      "mean": 43.68
+    },
+    "context_length": {
+      "min": 0,
+      "median": 19.0,
+      "max": 50
+    },
+    "candidate_count": {
+      "min": 3,
+      "median": 25.0,
+      "max": 30
+    },
+    "schema_validation_failures": 632,
+    "failure_examples": [
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "いーてぃー",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "えむえす",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "いーてぃー",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:5",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:57",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:57",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:57",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:57",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:81",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:81",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:81",
+        "reading": "ろくれい",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:111",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:111",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:111",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      },
+      {
+        "source_id": "wikipedia-ja:111",
+        "reading": "きごう",
+        "error": "gold_not_in_candidates"
+      }
+    ]
+  },
+  "shards": {
+    "count": 16,
+    "completed": 16,
+    "failed": 0,
+    "resume": true
+  },
+  "provenance": {
+    "source": "public documents supplied through --documents-input",
+    "selection": "input order, then deterministic source_id merge/split",
+    "mozc_executable": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main",
+    "mozc_cwd": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main.runfiles/_main",
+    "cpu_model": "Intel(R) Core(TM) i7-1060NG7 CPU @ 1.20GHz",
+    "logical_cpu_count": 8,
+    "worker_policy": "min(logical_cpu_count, documents)"
+  }
+}
