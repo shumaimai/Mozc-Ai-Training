@@ -1,0 +1,70 @@
+{
+  "cpu_model": "unknown",
+  "platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.36",
+  "onnxruntime_version": "1.20.1",
+  "threads": 8,
+  "inter_op_threads": 1,
+  "pid": 4,
+  "models": {
+    "teacher_8l": {
+      "onnx_path": "/artifacts/sarashina_jev/6l_64k_v1/comparison/teacher_8l_export/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+      "size_mib": 326.06349658966064,
+      "datasets": {
+        "existing_eval": {
+          "hit1": 0.8137254901960784,
+          "candidate0_baseline": 0.7450980392156863,
+          "predicted_candidate0_rate": 0.75,
+          "pages": 204,
+          "latency_ms": {
+            "count": 194,
+            "mean": 157.95823052577302,
+            "p50": 157.82476050000048,
+            "p95": 161.177772999999
+          }
+        },
+        "fresh_holdout": {
+          "hit1": 0.6125,
+          "candidate0_baseline": 0.77625,
+          "predicted_candidate0_rate": 0.65875,
+          "pages": 800,
+          "latency_ms": {
+            "count": 790,
+            "mean": 159.56686242911405,
+            "p50": 158.2499989999917,
+            "p95": 170.1680225499942
+          }
+        }
+      }
+    },
+    "student_6l": {
+      "onnx_path": "/artifacts/sarashina_jev/6l_64k_v1/comparison/student_6l_export/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+      "size_mib": 283.65014362335205,
+      "datasets": {
+        "existing_eval": {
+          "hit1": 0.8088235294117647,
+          "candidate0_baseline": 0.7450980392156863,
+          "predicted_candidate0_rate": 0.75,
+          "pages": 204,
+          "latency_ms": {
+            "count": 194,
+            "mean": 120.44228935051575,
+            "p50": 120.28472400000112,
+            "p95": 122.35390624999525
+          }
+        },
+        "fresh_holdout": {
+          "hit1": 0.58125,
+          "candidate0_baseline": 0.77625,
+          "predicted_candidate0_rate": 0.66875,
+          "pages": 800,
+          "latency_ms": {
+            "count": 790,
+            "mean": 119.35481424430341,
+            "p50": 119.38083750001738,
+            "p95": 121.6992345499861
+          }
+        }
+      }
+    }
+  }
+}

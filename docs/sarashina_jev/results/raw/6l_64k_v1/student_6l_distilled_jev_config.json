@@ -1,0 +1,51 @@
+{
+  "source_model": "sbintuitions/sarashina2.2-0.5b",
+  "kept_layer_indices": [
+    0,
+    3,
+    10,
+    13,
+    20,
+    23
+  ],
+  "page_size": 5,
+  "pooling": "last_non_padding_token",
+  "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+  "lm_head": false,
+  "autoregressive_generation": false,
+  "layer_pruning": {
+    "source_artifact": "/artifacts/sarashina_jev/vocab_ablation/64000",
+    "source_kept_layer_indices": [
+      0,
+      3,
+      7,
+      10,
+      13,
+      16,
+      20,
+      23
+    ],
+    "selected_positions": [
+      0,
+      1,
+      3,
+      4,
+      6,
+      7
+    ],
+    "selected_original_layer_indices": [
+      0,
+      3,
+      10,
+      13,
+      20,
+      23
+    ],
+    "selection": "even_positions_with_first_and_last"
+  },
+  "parameter_report": {
+    "total": 214648321,
+    "trainable": 132728321,
+    "embedding": 81920000
+  }
+}

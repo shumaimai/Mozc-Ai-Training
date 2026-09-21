@@ -1,0 +1,13 @@
+{
+  "dataset": "wikimedia/wikipedia",
+  "config": "20231101.ja",
+  "source_url": "https://huggingface.co/datasets/wikimedia/wikipedia",
+  "license_id": "CC-BY-SA-3.0/GFDL",
+  "scan_articles": 1500,
+  "example_articles": 1500,
+  "candidate_readings": 1846,
+  "train_rows": 1796,
+  "eval_rows": 204,
+  "max_examples": 2000,
+  "purpose": "Sarashina-JEV pruning PoC proxy only; not final Mozc N-best training data"
+}

@@ -1,0 +1,177 @@
+{
+  "artifact": "/artifacts/sarashina_jev/vocab_ablation/64000",
+  "source_meta": {
+    "source_model": "sbintuitions/sarashina2.2-0.5b",
+    "kept_layer_indices": [
+      0,
+      3,
+      7,
+      10,
+      13,
+      16,
+      20,
+      23
+    ],
+    "page_size": 5,
+    "pooling": "last_non_padding_token",
+    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+    "lm_head": false,
+    "autoregressive_generation": false,
+    "vocab_pruning": {
+      "strategy": "low_id_prefix_plus_required_tail",
+      "original_vocab_size": 102400,
+      "target_vocab_size": 64000,
+      "removed_pieces": 38400,
+      "unchanged_prefix_size": 63997,
+      "remapped_required_pieces": [
+        {
+          "old_id": 102397,
+          "new_id": 63997,
+          "piece": "<|prefix|>",
+          "type": 3
+        },
+        {
+          "old_id": 102398,
+          "new_id": 63998,
+          "piece": "<|suffix|>",
+          "type": 3
+        },
+        {
+          "old_id": 102399,
+          "new_id": 63999,
+          "piece": "<|middle|>",
+          "type": 3
+        }
+      ],
+      "embedding": {
+        "original_params": 131072000,
+        "target_params": 81920000,
+        "removed_params": 49152000,
+        "fp32_saved_mib": 187.5,
+        "fp16_saved_mib": 93.75
+      },
+      "special_ids": {
+        "unk": 0,
+        "bos": 1,
+        "eos": 2,
+        "pad": 3
+      },
+      "tokenizer_probe": {
+        "samples": 1020,
+        "changed_fraction": 0.4823529411764706,
+        "old_avg_tokens": 34.30196078431373,
+        "new_avg_tokens": 35.27156862745098,
+        "token_length_ratio": 1.0282668343432033,
+        "max_token_length_ratio": 1.25,
+        "old_unk_tokens": 0,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    }
+  },
+  "page_size": 5,
+  "max_length": 128,
+  "calib_pages": 384,
+  "eval_pages": 204,
+  "models": {
+    "fp32": {
+      "hit1": 0.8431372549019608,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.7647058823529411,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 415.3567991030936,
+        "p50": 411.4609920000021,
+        "p95": 436.0810068000376
+      },
+      "size_mib": 987.8970575332642
+    },
+    "fp16_embedding": {
+      "hit1": 0.8431372549019608,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.7647058823529411,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 470.16741435051466,
+        "p50": 465.28541449998784,
+        "p95": 548.2097165000055
+      },
+      "size_mib": 831.6472215652466,
+      "delta_hit1_vs_fp32": 0.0
+    },
+    "int8_dynamic": {
+      "hit1": 0.2549019607843137,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.18627450980392157,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 293.45323888144463,
+        "p50": 293.7846929999921,
+        "p95": 318.009010450001
+      },
+      "size_mib": 482.3132562637329,
+      "delta_hit1_vs_fp32": -0.5882352941176471
+    },
+    "int8_dynamic_fp16_embedding": {
+      "hit1": 0.2549019607843137,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.18627450980392157,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 286.72676028865925,
+        "p50": 282.2034359999748,
+        "p95": 313.09759530001315
+      },
+      "size_mib": 326.06349658966064,
+      "delta_hit1_vs_fp32": -0.5882352941176471
+    },
+    "int8_dynamic_gather": {
+      "hit1": 0.22058823529411764,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.20098039215686275,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 292.73966189690753,
+        "p50": 291.7221485000141,
+        "p95": 322.6403021000067
+      },
+      "size_mib": 247.9386043548584,
+      "delta_hit1_vs_fp32": -0.6225490196078431
+    },
+    "int8_qdq": {
+      "hit1": 0.2107843137254902,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.2107843137254902,
+      "pages": 204,
+      "latency_ms": {
+        "count": 194,
+        "mean": 351.92557774742096,
+        "p50": 348.20050800004765,
+        "p95": 380.8135072000084
+      },
+      "size_mib": 248.00774765014648,
+      "delta_hit1_vs_fp32": -0.6323529411764706
+    }
+  },
+  "fp16_embedding_info": {
+    "converted": [
+      {
+        "initializer": "backbone.embed_tokens.weight",
+        "shape": [
+          64000,
+          1280
+        ],
+        "elements": 81920000
+      }
+    ],
+    "count": 1
+  },
+  "dynamic_gather_error": null,
+  "preferred_if_accuracy_holds": "smallest INT8 variant within the accuracy gate",
+  "note": "int8_qdq includes Gather so the token embedding can be quantized. If Hit@1 regresses materially, move to QAT/quantization-aware distillation."
+}

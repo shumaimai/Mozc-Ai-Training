@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-09-21",
+  "evaluation": {
+    "dataset": "data/public/sarashina_jev_proxy/eval.jsonl",
+    "pages": 204,
+    "candidates_per_page": 5,
+    "candidate0_baseline_hit1": 0.7450980392156863,
+    "onnxruntime_version": "1.20.1",
+    "threads": 8,
+    "warmup_pages": 10
+  },
+  "variants": {
+    "102400": {
+      "fp32_hit1": 0.8480392156862745,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.8186274509803921,
+        "size_mib": 419.81349658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 134.46984662371355,
+          "p50": 134.42814550001003,
+          "p95": 135.7900988499921
+        },
+        "validation": "original_qat_v2_repro_report"
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.0,
+        "changed_fraction": 0.0,
+        "new_unk_tokens": 0
+      }
+    },
+    "64000": {
+      "fp32_hit1": 0.8431372549019608,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.8137254901960784,
+        "size_mib": 326.06349658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 162.5667947371133,
+          "p50": 162.7296934999993,
+          "p95": 164.21898764999696
+        },
+        "validation": "fresh_modal_container_revalidation",
+        "anomalous_raw_run_hit1": 0.2549019607843137
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.0282668343432033,
+        "max_token_length_ratio": 1.25,
+        "changed_fraction": 0.4823529411764706,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    },
+    "48000": {
+      "fp32_hit1": 0.8382352941176471,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.7892156862745098,
+        "size_mib": 287.00099658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 163.17772336082467,
+          "p50": 163.0217199999979,
+          "p95": 164.27054470000027
+        },
+        "validation": "fresh_modal_container_revalidation",
+        "anomalous_raw_run_hit1": 0.19607843137254902
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.081828055333257,
+        "max_token_length_ratio": 1.3055555555555556,
+        "changed_fraction": 1.0,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    }
+  },
+  "layer_ablation_64000": {
+    "teacher_8l": {
+      "kept_layer_indices": [0, 3, 7, 10, 13, 16, 20, 23],
+      "existing_eval_hit1": 0.8137254901960784,
+      "fresh_holdout_hit1": 0.6125,
+      "size_mib": 326.06349658966064,
+      "p50_ms": 157.82476050000048,
+      "p95_ms": 161.177772999999,
+      "parameter_count": null
+    },
+    "student_6l_qat_v2": {
+      "kept_layer_indices": [0, 3, 10, 13, 20, 23],
+      "existing_eval_hit1": 0.8088235294117647,
+      "fresh_holdout_hit1": 0.58125,
+      "size_mib": 283.65014362335205,
+      "p50_ms": 120.28472400000112,
+      "p95_ms": 122.35390624999525,
+      "parameter_count": 214648321,
+      "embedding_parameters": 81920000,
+      "qat_fake_int8_existing_eval_hit1": 0.7892156862745098
+    },
+    "delta_student_minus_teacher": {
+      "existing_eval_hit1_points": -0.4901960784313726,
+      "fresh_holdout_hit1_points": -3.125,
+      "p50_speedup_fraction": 0.2378056325703566,
+      "size_reduction_mib": 42.413352966308594
+    },
+    "environment": {
+      "onnxruntime_version": "1.20.1",
+      "threads": 8,
+      "inter_op_threads": 1,
+      "cpu_model_reported": "unknown",
+      "same_cpu_anomaly": "Both 8L and 6L mixed INT8 runs collapsed on one CPU/container; see raw/same_cpu_comparison.json. Fresh-container values above are authoritative."
+    },
+    "holdout": {
+      "dataset": "data/public/sarashina_jev_6l_holdout/holdout.jsonl",
+      "pages": 800,
+      "source_id_overlap_count": 0,
+      "provenance": "data/public/sarashina_jev_6l_holdout/holdout_meta.json"
+    }
+  },
+  "decision": {
+    "recommended_vocab_size": 64000,
+    "proceed_to_32000": false,
+    "next_optional_vocab_size": 56000,
+    "reason": "48k lost 5 of 204 INT8 decisions versus 64k, increased token length by 8.18%, and did not improve fresh-container latency",
+    "six_layer_64k": "conditional_candidate",
+    "six_layer_reason": "Size is 283.65 MiB and fresh-container p50 is 23.78% faster, while existing eval loses only 0.49 points; however fresh holdout loses 3.125 points versus the 8L teacher, so do not replace the 8L production candidate yet."
+  }
+}

@@ -39,6 +39,12 @@ Release assetとして配布しません。
 - [`docs/OVERVIEW.md`](docs/OVERVIEW.md): v1.0.0の確定構成
 - [`docs/RELEASE_NOTES_V1.0.0.md`](docs/RELEASE_NOTES_V1.0.0.md): 版の範囲と検証
 - [`docs/HISTORY.md`](docs/HISTORY.md): 生成方式からリランク方式へ移った経緯
+- [`docs/sarashina_jev/results/README.md`](docs/sarashina_jev/results/README.md):
+  Sarashina-JEV QAT・64k/48k語彙削減・8L→6L distillationの生レポートと比較
+- [`data/public/sarashina_jev_proxy/README.md`](data/public/sarashina_jev_proxy/README.md):
+  実験に使ったWikipedia由来proxyデータ、出典、ライセンス、checksum
+- [`data/public/sarashina_jev_6l_holdout/README.md`](data/public/sarashina_jev_6l_holdout/README.md):
+  6L実験用の非重複800-row public holdoutとprovenance
 
 ## セットアップ
 
@@ -127,4 +133,3 @@ python -m unittest discover -s tools/rerank -p "test_*.py"
 Mozc由来コードはMozcのBSDライセンスに従います。基盤モデル
 `sbintuitions/modernbert-ja-30m` はMITライセンスです。取得する各データソースと
 Python依存関係にはそれぞれの利用条件が適用されます。
-
