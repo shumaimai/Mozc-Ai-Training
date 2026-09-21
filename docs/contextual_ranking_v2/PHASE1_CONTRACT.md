@@ -1,7 +1,7 @@
 # Contextual Ranking v2 — Phase 1 contract implementation
 
-Status: **started, contract-only**  
-Dataset v2 generation: **not started**  
+Status: **pilot v2 complete; large-scale generation paused**
+Dataset v2 generation: **pilot only**
 Model training: **not started**
 
 ## Scope of this increment
@@ -41,6 +41,18 @@ category, converted_segment_count, protection
 
 `surface`-only records are rejected by
 `tools.rerank.contextual_ranking_v2_schema.validate_record`.
+
+Pilot v2 rows additionally carry `example_status` and `example_reason`:
+
+- `NEURAL_ELIGIBLE`: normal contextual candidate suitable for future training.
+- `PROTECTED_EVAL_ONLY`: retain for evaluation, but do not train over protected
+  symbol/number/punctuation/function-word cases by default.
+- `COVERAGE_FAILURE`: retain in the end-to-end denominator when gold is absent
+  from top-K; reason is `gold_not_in_top_k`.
+
+Ranking reports must publish both conditional metrics (gold present in top-30)
+and end-to-end metrics over all extracted examples, plus top-1/top-5/top-10/
+top-30 candidate coverage.
 
 ## Runtime parity
 

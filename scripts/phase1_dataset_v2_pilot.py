@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """CPU-parallel, resumable Phase 1 Dataset v2 pilot.
 
-This is intentionally a pilot generator. It fetches only explicitly selected
-public-domain Aozora works, keeps one persistent Mozc converter process per
+This is intentionally a pilot generator. It accepts explicitly selected public
+documents, keeps one persistent Mozc converter process per
 Python worker thread, writes resumable shard outputs, and stops after the
 requested document count. It does not train a model.
 """
@@ -84,6 +84,7 @@ def _parse_converter(lines: list[str], reading: str, top_k: int) -> list[dict[st
                 "surface": candidate_match.group(3),
                 "rank": rank,
                 "cost": 0,
+                "wcost": 0,
                 "cost_delta": 0,
                 "lid": 0,
                 "rid": 0,
@@ -97,9 +98,11 @@ def _parse_converter(lines: list[str], reading: str, top_k: int) -> list[dict[st
         if last is None:
             continue
         if line.strip().startswith("cost:"):
-            values = re.findall(r"-?\d+", line)
-            if values:
-                last["cost"] = int(values[0])
+            match = re.search(r"cost:\s*(-?\d+).*?wcost:\s*(-?\d+)", line.strip())
+            if match:
+                last["cost"], last["wcost"] = int(match.group(1)), int(match.group(2))
+        elif line.strip().startswith("wcost:"):
+            last["wcost"] = int(re.search(r"-?\d+", line).group(0))
         elif line.strip().startswith("lid:"):
             match = INT_RE.search(line)
             if match:
@@ -121,6 +124,8 @@ def _parse_converter(lines: list[str], reading: str, top_k: int) -> list[dict[st
                 "NO_DELETABLE": 1 << 19,
             }
             last["attributes"] = sum(bit for name, bit in bits.items() if name in attrs)
+        elif line.strip().startswith("attributes:"):
+            last["attributes"] = int(line.split(":", 1)[1].strip())
         elif line.strip().startswith("category:"):
             last["category"] = line.split(":", 1)[1].strip()
         elif line.strip().startswith("converted_segment_count:"):

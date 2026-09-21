@@ -82,6 +82,25 @@ class Phase0ContractTest(unittest.TestCase):
         }
         self.assertEqual(validate_record(record), [])
 
+    def test_phase1_record_schema_keeps_coverage_failure_as_eval_record(self):
+        record = {
+            "schema_version": SCHEMA_VERSION,
+            "format_version": RECORD_FORMAT_VERSION,
+            "source_id": "fixture:coverage",
+            "reading": "きしゃ",
+            "context_prev": "駅に",
+            "gold": "未知表記",
+            "target_segment_index": 0,
+            "example_status": "COVERAGE_FAILURE",
+            "example_reason": "gold_not_in_top_k",
+            "candidates": [{
+                "surface": "汽車", "rank": 0, "cost": 100, "cost_delta": 0,
+                "lid": 1, "rid": 2, "attributes": 0, "category": "DEFAULT",
+                "converted_segment_count": 1, "protection": "NORMAL", "wcost": 80,
+            }],
+        }
+        self.assertEqual(validate_record(record), [])
+
 
 if __name__ == "__main__":
     unittest.main()

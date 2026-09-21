@@ -13,6 +13,8 @@
     "context_prev": {"type": "string", "maxLength": 50},
     "gold": {"type": "string", "minLength": 1},
     "target_segment_index": {"type": "integer", "minimum": 0},
+    "example_status": {"enum": ["NEURAL_ELIGIBLE", "PROTECTED_EVAL_ONLY", "COVERAGE_FAILURE"]},
+    "example_reason": {"type": "string", "minLength": 1},
     "candidates": {
       "type": "array", "minItems": 1,
       "items": {
@@ -22,6 +24,7 @@
           "surface": {"type": "string", "minLength": 1},
           "rank": {"type": "integer", "minimum": 0},
           "cost": {"type": "integer"},
+          "wcost": {"type": "integer"},
           "cost_delta": {"type": "integer"},
           "lid": {"type": "integer", "minimum": 0},
           "rid": {"type": "integer", "minimum": 0},

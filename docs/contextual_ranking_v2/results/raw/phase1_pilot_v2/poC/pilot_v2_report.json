@@ -1,0 +1,147 @@
+{
+  "phase": "1-pilot-v2",
+  "status": "complete",
+  "model_training_started": false,
+  "documents": 20,
+  "workers": 8,
+  "seed": 20260921,
+  "modes": {
+    "old_standalone": {
+      "examples": 1000,
+      "documents": 20,
+      "workers": 8,
+      "rows_per_sec": 147.4576371511882,
+      "docs_per_sec": 2.9491527430237645,
+      "end_to_end_accuracy": {
+        "top1": 0.711,
+        "top5": 0.876
+      },
+      "conditional_accuracy": {
+        "top1": 0.7830396475770925,
+        "top5": 0.9647577092511013,
+        "top10": 0.9845814977973568,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.711,
+        "top5": 0.876,
+        "top10": 0.894,
+        "top30": 0.908
+      },
+      "coverage_failure_rate": 0.092,
+      "status_counts": {
+        "NEURAL_ELIGIBLE": 513,
+        "PROTECTED_EVAL_ONLY": 395,
+        "COVERAGE_FAILURE": 92
+      },
+      "reason_counts": {
+        "gold_not_in_top_k": 92,
+        "normal_contextual": 513,
+        "number": 6,
+        "short_function_word": 388,
+        "symbol": 1
+      },
+      "reason_ratios": {
+        "gold_not_in_top_k": 0.092,
+        "normal_contextual": 0.513,
+        "number": 0.006,
+        "short_function_word": 0.388,
+        "symbol": 0.001
+      },
+      "alignment_failures": 0,
+      "alignment_success_rate": 1.0,
+      "alignment_failure_reasons": {},
+      "per_document_examples": {
+        "min": 50,
+        "median": 50.0,
+        "max": 50,
+        "mean": 50
+      },
+      "context_length": {
+        "min": 0,
+        "median": 18.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 3,
+        "median": 30.0,
+        "max": 30
+      }
+    },
+    "new_segment_aligned": {
+      "examples": 1000,
+      "documents": 20,
+      "workers": 8,
+      "rows_per_sec": 147.4576371511882,
+      "docs_per_sec": 2.9491527430237645,
+      "end_to_end_accuracy": {
+        "top1": 0.793,
+        "top5": 0.885
+      },
+      "conditional_accuracy": {
+        "top1": 0.8743109151047409,
+        "top5": 0.9757442116868799,
+        "top10": 0.9911797133406836,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.793,
+        "top5": 0.885,
+        "top10": 0.899,
+        "top30": 0.907
+      },
+      "coverage_failure_rate": 0.093,
+      "status_counts": {
+        "PROTECTED_EVAL_ONLY": 222,
+        "NEURAL_ELIGIBLE": 685,
+        "COVERAGE_FAILURE": 93
+      },
+      "reason_counts": {
+        "gold_not_in_top_k": 93,
+        "normal_contextual": 685,
+        "number": 6,
+        "punctuation": 194,
+        "short_function_word": 21,
+        "symbol": 1
+      },
+      "reason_ratios": {
+        "gold_not_in_top_k": 0.093,
+        "normal_contextual": 0.685,
+        "number": 0.006,
+        "punctuation": 0.194,
+        "short_function_word": 0.021,
+        "symbol": 0.001
+      },
+      "alignment_failures": 60,
+      "alignment_success_rate": 0.9433962264150944,
+      "alignment_failure_reasons": {
+        "ALIGNMENT_FAILURE": 60
+      },
+      "per_document_examples": {
+        "min": 50,
+        "median": 50.0,
+        "max": 50,
+        "mean": 50
+      },
+      "context_length": {
+        "min": 0,
+        "median": 22.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 1,
+        "median": 12.0,
+        "max": 30
+      }
+    }
+  },
+  "provenance": {
+    "source": "wikimedia/wikipedia supplied JSONL",
+    "converter": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main",
+    "mozc_cwd": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main.runfiles/_main",
+    "cpu_model": "Intel(R) Core(TM) i7-1060NG7 CPU @ 1.20GHz",
+    "logical_cpu_count": 8,
+    "format_version": "contextual-ranking-v2-format-v1",
+    "schema_version": "contextual-ranking-v2-record-v1"
+  }
+}

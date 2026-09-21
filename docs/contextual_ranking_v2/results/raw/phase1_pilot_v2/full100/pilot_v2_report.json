@@ -1,0 +1,147 @@
+{
+  "phase": "1-pilot-v2",
+  "status": "complete",
+  "model_training_started": false,
+  "documents": 100,
+  "workers": 8,
+  "seed": 20260921,
+  "modes": {
+    "old_standalone": {
+      "examples": 5000,
+      "documents": 100,
+      "workers": 8,
+      "rows_per_sec": 192.29018113607492,
+      "docs_per_sec": 3.845803622721498,
+      "end_to_end_accuracy": {
+        "top1": 0.686,
+        "top5": 0.8302
+      },
+      "conditional_accuracy": {
+        "top1": 0.7852564102564102,
+        "top5": 0.9503205128205128,
+        "top10": 0.9693223443223443,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.686,
+        "top5": 0.8302,
+        "top10": 0.8468,
+        "top30": 0.8736
+      },
+      "coverage_failure_rate": 0.1264,
+      "status_counts": {
+        "NEURAL_ELIGIBLE": 2600,
+        "PROTECTED_EVAL_ONLY": 1768,
+        "COVERAGE_FAILURE": 632
+      },
+      "reason_counts": {
+        "gold_not_in_top_k": 632,
+        "normal_contextual": 2600,
+        "number": 49,
+        "short_function_word": 1718,
+        "symbol": 1
+      },
+      "reason_ratios": {
+        "gold_not_in_top_k": 0.1264,
+        "normal_contextual": 0.52,
+        "number": 0.0098,
+        "short_function_word": 0.3436,
+        "symbol": 0.0002
+      },
+      "alignment_failures": 0,
+      "alignment_success_rate": 1.0,
+      "alignment_failure_reasons": {},
+      "per_document_examples": {
+        "min": 50,
+        "median": 50.0,
+        "max": 50,
+        "mean": 50
+      },
+      "context_length": {
+        "min": 0,
+        "median": 18.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 3,
+        "median": 30.0,
+        "max": 30
+      }
+    },
+    "new_segment_aligned": {
+      "examples": 4924,
+      "documents": 100,
+      "workers": 8,
+      "rows_per_sec": 189.36737038280657,
+      "docs_per_sec": 3.845803622721498,
+      "end_to_end_accuracy": {
+        "top1": 0.7875710804224207,
+        "top5": 0.8631194151096669
+      },
+      "conditional_accuracy": {
+        "top1": 0.8945790080738177,
+        "top5": 0.9803921568627451,
+        "top10": 0.9919261822376009,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.7875710804224207,
+        "top5": 0.8631194151096669,
+        "top10": 0.8732737611697806,
+        "top30": 0.8803818034118602
+      },
+      "coverage_failure_rate": 0.11961819658813973,
+      "status_counts": {
+        "PROTECTED_EVAL_ONLY": 1187,
+        "NEURAL_ELIGIBLE": 3148,
+        "COVERAGE_FAILURE": 589
+      },
+      "reason_counts": {
+        "gold_not_in_top_k": 589,
+        "normal_contextual": 3148,
+        "number": 52,
+        "punctuation": 1048,
+        "short_function_word": 84,
+        "symbol": 3
+      },
+      "reason_ratios": {
+        "gold_not_in_top_k": 0.11961819658813973,
+        "normal_contextual": 0.6393176279447603,
+        "number": 0.010560519902518278,
+        "punctuation": 0.21283509341998375,
+        "short_function_word": 0.017059301380991064,
+        "symbol": 0.0006092607636068237
+      },
+      "alignment_failures": 554,
+      "alignment_success_rate": 0.8988682000730194,
+      "alignment_failure_reasons": {
+        "ALIGNMENT_FAILURE": 554
+      },
+      "per_document_examples": {
+        "min": 25,
+        "median": 50.0,
+        "max": 50,
+        "mean": 49.24
+      },
+      "context_length": {
+        "min": 0,
+        "median": 22.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 1,
+        "median": 12.0,
+        "max": 30
+      }
+    }
+  },
+  "provenance": {
+    "source": "wikimedia/wikipedia supplied JSONL",
+    "converter": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main",
+    "mozc_cwd": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main.runfiles/_main",
+    "cpu_model": "Intel(R) Core(TM) i7-1060NG7 CPU @ 1.20GHz",
+    "logical_cpu_count": 8,
+    "format_version": "contextual-ranking-v2-format-v1",
+    "schema_version": "contextual-ranking-v2-record-v1"
+  }
+}
