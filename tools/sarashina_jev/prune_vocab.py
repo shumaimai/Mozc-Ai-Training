@@ -1,8 +1,9 @@
-"""Prune Sarashina-JEV's SentencePiece vocabulary by keeping a contiguous prefix.
+"""Prune Sarashina-JEV's SentencePiece vocabulary while preserving required pieces.
 
-Keeping token IDs 0..N-1 unchanged lets us truncate the embedding matrix
-without remapping any retained token. Removed unigram pieces fall back to
-smaller retained pieces / byte fallback.
+The lowest-ID ordinary pieces are retained so their token IDs stay unchanged.
+Required special/byte pieces outside that prefix are moved to the new vocabulary
+tail, and their corresponding embedding rows are copied to the remapped IDs.
+Removed unigram pieces fall back to smaller retained pieces / byte fallback.
 """
 
 from __future__ import annotations
@@ -36,7 +37,11 @@ def find_sentencepiece_model(tokenizer_dir: Path) -> Path:
     raise FileNotFoundError(f"SentencePiece model not found in {tokenizer_dir}")
 
 
-def prune_sentencepiece_prefix(src: Path, dst: Path, target_vocab: int) -> dict:
+def prune_sentencepiece_prefix(
+    src: Path,
+    dst: Path,
+    target_vocab: int,
+) -> tuple[dict, list[int], dict[int, int]]:
     proto = sp_pb2.ModelProto()
     proto.ParseFromString(src.read_bytes())
     original = len(proto.pieces)
@@ -52,28 +57,91 @@ def prune_sentencepiece_prefix(src: Path, dst: Path, target_vocab: int) -> dict:
         sp_pb2.ModelProto.SentencePiece.USER_DEFINED,
         sp_pb2.ModelProto.SentencePiece.BYTE,
     }
-    required_after_cut = [
-        (i, piece.piece, int(piece.type))
-        for i, piece in enumerate(proto.pieces)
-        if i >= target_vocab and piece.type in required_types
+    required_indices = [
+        i for i, piece in enumerate(proto.pieces) if piece.type in required_types
     ]
-    if required_after_cut:
+    if len(required_indices) > target_vocab:
         raise ValueError(
-            "contiguous-prefix pruning would remove required special/byte pieces: "
-            f"{required_after_cut[:20]}"
+            f"target vocab {target_vocab} is too small for "
+            f"{len(required_indices)} required special/byte pieces"
         )
 
+    # Reserve slots for every required piece, then fill the remaining slots with
+    # the lowest-ID pieces. In Sarashina this keeps the ordinary contiguous
+    # prefix unchanged and remaps only the three FIM control tokens at the tail.
+    kept = set(required_indices)
+    for i in range(original):
+        if len(kept) >= target_vocab:
+            break
+        kept.add(i)
+    kept_indices = sorted(kept)
+    if len(kept_indices) != target_vocab:
+        raise RuntimeError(
+            f"failed to select {target_vocab} pieces; selected {len(kept_indices)}"
+        )
+    id_remap = {old_id: new_id for new_id, old_id in enumerate(kept_indices)}
+
+    piece_blobs = [proto.pieces[i].SerializeToString() for i in kept_indices]
+    preserved_tail = [
+        {
+            "old_id": old_id,
+            "new_id": id_remap[old_id],
+            "piece": proto.pieces[old_id].piece,
+            "type": int(proto.pieces[old_id].type),
+        }
+        for old_id in required_indices
+        if id_remap[old_id] != old_id
+    ]
     removed = original - target_vocab
-    del proto.pieces[target_vocab:]
+    del proto.pieces[:]
+    for piece_blob in piece_blobs:
+        proto.pieces.add().ParseFromString(piece_blob)
     proto.trainer_spec.vocab_size = target_vocab
     dst.write_bytes(proto.SerializeToString())
 
-    return {
-        "strategy": "contiguous_prefix",
+    report = {
+        "strategy": "low_id_prefix_plus_required_tail",
         "original_vocab_size": original,
         "target_vocab_size": target_vocab,
         "removed_pieces": removed,
+        "unchanged_prefix_size": next(
+            (new_id for new_id, old_id in enumerate(kept_indices) if new_id != old_id),
+            target_vocab,
+        ),
+        "remapped_required_pieces": preserved_tail,
     }
+    return report, kept_indices, id_remap
+
+
+def remap_added_tokens_decoder(tokenizer_dir: Path, id_remap: dict[int, int]) -> None:
+    """Keep tokenizer_config added-token IDs aligned with the pruned SP model."""
+    config_path = tokenizer_dir / "tokenizer_config.json"
+    if not config_path.exists():
+        return
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    decoder = config.get("added_tokens_decoder")
+    if not isinstance(decoder, dict):
+        return
+
+    remapped_decoder = {}
+    for old_id_text, token_config in decoder.items():
+        old_id = int(old_id_text)
+        if old_id not in id_remap:
+            content = (
+                token_config.get("content")
+                if isinstance(token_config, dict)
+                else token_config
+            )
+            raise ValueError(
+                f"vocabulary pruning would remove configured added token "
+                f"id={old_id} content={content!r}"
+            )
+        remapped_decoder[str(id_remap[old_id])] = token_config
+    config["added_tokens_decoder"] = remapped_decoder
+    config_path.write_text(
+        json.dumps(config, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def probe_tokenizer(old_tokenizer, new_tokenizer, rows: list[dict], limit: int) -> dict:
@@ -156,7 +224,12 @@ def main() -> int:
         shutil.rmtree(temp_tokenizer)
     shutil.copytree(src / "tokenizer", temp_tokenizer)
     sp_path = find_sentencepiece_model(temp_tokenizer)
-    sp_report = prune_sentencepiece_prefix(sp_path, sp_path, target)
+    sp_report, kept_indices, id_remap = prune_sentencepiece_prefix(
+        sp_path,
+        sp_path,
+        target,
+    )
+    remap_added_tokens_decoder(temp_tokenizer, id_remap)
 
     # Remove stale fast-tokenizer serialization if one exists. AutoTokenizer can
     # regenerate from the pruned SentencePiece model and tokenizer config.
@@ -179,6 +252,13 @@ def main() -> int:
         raise RuntimeError("eos token ID changed during contiguous-prefix pruning")
     if old_tokenizer.pad_token_id != new_tokenizer.pad_token_id:
         raise RuntimeError("pad token ID changed during contiguous-prefix pruning")
+    for remapped_piece in sp_report["remapped_required_pieces"]:
+        actual_id = new_tokenizer.convert_tokens_to_ids(remapped_piece["piece"])
+        if actual_id != remapped_piece["new_id"]:
+            raise RuntimeError(
+                f"required piece ID mismatch for {remapped_piece['piece']!r}: "
+                f"expected {remapped_piece['new_id']}, got {actual_id}"
+            )
 
     new_embed = nn.Embedding(
         target,
@@ -192,7 +272,12 @@ def main() -> int:
         dtype=old_embed.weight.dtype,
     )
     with torch.no_grad():
-        new_embed.weight.copy_(old_embed.weight[:target])
+        row_indices = torch.tensor(
+            kept_indices,
+            dtype=torch.long,
+            device=old_embed.weight.device,
+        )
+        new_embed.weight.copy_(old_embed.weight.index_select(0, row_indices))
     new_embed.weight.requires_grad = old_embed.weight.requires_grad
     model.backbone.set_input_embeddings(new_embed)
     model.backbone.config.vocab_size = target
