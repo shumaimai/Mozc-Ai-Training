@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+FORMAT_VERSION = "contextual-ranking-v2-format-v1"
+
 
 def format_v1_train(reading: str, context: str, candidate: str) -> str:
     parts = [f"読み: {reading}"]
@@ -21,6 +23,11 @@ def format_v1_runtime(reading: str, context: str, candidate: str) -> str:
     return f"読み: {reading}\n文脈: {context}\n候補: {candidate}"
 
 
+def format_v2(reading: str, context: str, candidate: str) -> str:
+    """Canonical v2 wire format; versioned for train/eval/runtime parity."""
+    return format_v1_runtime(reading, context, candidate)
+
+
 @dataclass(frozen=True)
 class ContractCase:
     case_id: str
@@ -29,4 +36,3 @@ class ContractCase:
     cleaned_context: str
     candidates: tuple[str, ...]
     target_segment: int = 0
-

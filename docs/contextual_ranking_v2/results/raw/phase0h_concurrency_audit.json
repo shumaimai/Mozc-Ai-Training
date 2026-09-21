@@ -1,0 +1,18 @@
+{
+  "phase": "0-H",
+  "status": "closed_with_thread_scoped_state",
+  "upstream_evidence": {
+    "rewriter_api": "Rewrite(request, segments) and Finish(request, segments) have no explicit session ID",
+    "merger": "MergerRewriter calls each rewriter sequentially for one lifecycle",
+    "session": "Mozc Session owns its converter; no cross-session mutex was found in pinned source"
+  },
+  "old_risk": "single pending_log_ plus has_pending_log_ allowed Rewrite A / Rewrite B / Finish A to consume B state if one rewriter instance was interleaved",
+  "fix": {
+    "pending_state": "std::map<std::thread::id, PendingLog> protected by pending_mutex_",
+    "lifecycle_contract": "Rewrite and Finish for one conversion must execute on the same calling thread because the upstream API has no request ID",
+    "hook_temp_files": "unique process-wide atomic counter prevents concurrent request/response path collision",
+    "counter": "conversion_counter_ increment is mutex-protected"
+  },
+  "test": "MultiSegmentLogUsesScoredTargetSegment plus source-level race audit",
+  "remaining": "If a future embedding invokes Finish on a different thread, extend the integration API with an explicit conversion/session ID instead of guessing from segments."
+}

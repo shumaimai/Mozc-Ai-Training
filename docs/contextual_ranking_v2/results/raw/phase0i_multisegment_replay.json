@@ -1,0 +1,31 @@
+{
+  "phase": "0-B-closure",
+  "status": "optional_actual_converter_replay_unavailable",
+  "pinned_mozc_revision": "13c98988247aa711d99db9e348ec2a597d14b5cd",
+  "requested_evidence": [
+    "actual converter multi-segment N-best",
+    "scored segment",
+    "target_segment_index",
+    "committed segment"
+  ],
+  "attempt": {
+    "source_checkout": "/tmp/mozc-upstream",
+    "integration_command": "python3 scripts/integrate_mozc.py --mozc-dir /tmp/mozc-upstream/src",
+    "result": "rewriter sources copied; integration stopped at stale SuggestWithPreferences marker in unrelated engine context patch"
+  },
+  "environment_blocker": {
+    "bazel": false,
+    "bazelisk": false,
+    "detail": "No Bazel/Mozc build tool is available in the current environment; no fabricated converter output is recorded."
+  },
+  "available_coverage": {
+    "fixture": "Mozc-Ai/mozc_compat/rerank_rewriter_test.cc::MultiSegmentLogUsesScoredTargetSegment",
+    "fixture_type": "compatibility fixture, not actual converter replay",
+    "assertions": [
+      "Rewrite scores conversion_segments_size - 1",
+      "Finish reads the same target index",
+      "committed_candidate is logged from that target segment"
+    ]
+  },
+  "decision": "The compatibility test and production code fix close the known index bug. Actual converter replay remains an optional environment-dependent follow-up and is not represented as completed evidence."
+}

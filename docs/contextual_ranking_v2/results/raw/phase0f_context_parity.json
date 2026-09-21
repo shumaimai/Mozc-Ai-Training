@@ -1,6 +1,10 @@
 {
   "phase": "0-F",
-  "status": "contract_defined",
+  "status": "green",
+  "pinned_mozc_revision": "13c98988247aa711d99db9e348ec2a597d14b5cd",
+  "command": "g++ -std=c++17 -O2 -DMOZC_RERANK_STANDALONE -I<mozc>/src/rewriter <mozc>/src/rewriter/context_clip.cc <mozc>/src/rewriter/context_clip_cli.cc -o context_clip_cli && python -m tools.rerank.test_context_clip_parity --cli ./context_clip_cli",
+  "result": "23/23",
+  "formatter_version": "contextual-ranking-v2-format-v1",
   "context_policy": {
     "source": "Mozc preceding text plus reconstructable history",
     "cleaning": "newline/tab normalization, wiki markup removal, active sentence selection",
@@ -11,5 +15,5 @@
   "cpp_source": "Mozc-Ai/mozc_compat/context_clip.cc::CleanContext",
   "parity_test": "tools/rerank/test_context_clip_parity.py",
   "formatter_contract": "tests/fixtures/contextual_ranking_v2/cases.jsonl expected_format",
-  "note": "A real Mozc C++ build is required to execute the CLI parity test; no model training is needed."
+  "note": "The CLI was compiled from the pinned upstream Mozc src/rewriter checkout after integration copy. Full Bazel rewriter integration remains a separate build concern."
 }
