@@ -33,9 +33,10 @@ from tools.rerank.contextual_ranking_v2_schema import (
     validate_record,
 )
 try:
-    from sudachipy import dictionary as sudachi_dictionary
+    from sudachipy import SplitMode, dictionary as sudachi_dictionary
 except ImportError:
     sudachi_dictionary = None
+    SplitMode = None
 
 SEGMENT_RE = re.compile(r"^-+ Segment (\d+)/(\d+) \[(.*?)\] -+")
 CANDIDATE_RE = re.compile(r"^\s+(-?\d+)/(\d+) (.*)$")
@@ -46,6 +47,7 @@ FUNCTION_READINGS = {
 }
 NUMBER_BIT = 1 << 23
 HARD_BITS = (1 << 1) | (1 << 16) | (1 << 17) | (1 << 19)
+LATIN_RE = re.compile(r"[A-Za-z]")
 
 
 def parse_segments(lines: list[str], top_k: int) -> list[dict[str, Any]]:
@@ -143,7 +145,7 @@ def sentence_spans(text: str):
             yield match.start(), sentence
 
 
-def aligned_sentences(work: dict[str, Any], max_examples: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def aligned_sentences(work: dict[str, Any], max_examples: int, split_mode: str = "C") -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if sudachi_dictionary is None:
         raise RuntimeError("segment alignment requires SudachiPy")
     tokenizer = sudachi_dictionary.Dictionary().create()
@@ -152,12 +154,14 @@ def aligned_sentences(work: dict[str, Any], max_examples: int) -> tuple[list[dic
     failures: list[dict[str, Any]] = []
     for sentence_index, (sentence_start, sentence) in enumerate(sentence_spans(text)):
         morphemes = []
-        for morpheme in tokenizer.tokenize(sentence):
+        mode = getattr(SplitMode, split_mode)
+        for morpheme in tokenizer.tokenize(sentence, mode):
             surface = normalize_surface(morpheme.surface())
             reading = normalize_reading(morpheme.reading_form() or surface)
             if not surface or not reading:
                 continue
-            morphemes.append({"surface": surface, "reading": reading, "begin": morpheme.begin(), "end": morpheme.end()})
+            pos = morpheme.part_of_speech()
+            morphemes.append({"surface": surface, "reading": reading, "begin": morpheme.begin(), "end": morpheme.end(), "pos": pos})
         if not morphemes:
             continue
         full_reading = "".join(m["reading"] for m in morphemes)
@@ -195,6 +199,7 @@ def aligned_sentences(work: dict[str, Any], max_examples: int) -> tuple[list[dic
                 "context_prev": clean_context(text[:source_start]),
                 "gold": "".join(m["surface"] for m in morphemes[first:last + 1]),
                 "target_segment_index": segment["index"], "candidates": segment["candidates"],
+                "_source_kind": "proper_noun" if any(len(m.get("pos", ())) > 1 and m["pos"][1] == "固有名詞" for m in morphemes[first:last + 1]) else "",
                 "_source_start": source_start, "_source_end": source_end,
                 "_sentence_index": sentence_index,
             })
@@ -204,30 +209,46 @@ def aligned_sentences(work: dict[str, Any], max_examples: int) -> tuple[list[dic
     return examples, failures
 
 
-def classify(example: dict[str, Any]) -> tuple[str, str]:
+def classify(example: dict[str, Any]) -> tuple[str, str, str]:
     candidates = example["candidates"]
     surfaces = [c["surface"] for c in candidates]
-    if example["gold"] not in surfaces:
-        return "COVERAGE_FAILURE", "gold_not_in_top_k"
-    candidate = candidates[surfaces.index(example["gold"])]
     gold = example["gold"]
-    if candidate.get("category") == "SYMBOL":
-        return "PROTECTED_EVAL_ONLY", "symbol"
-    if any(ch.isdigit() for ch in gold) or candidate.get("attributes", 0) & NUMBER_BIT:
-        return "PROTECTED_EVAL_ONLY", "number"
+    candidate = candidates[surfaces.index(gold)] if gold in surfaces else None
     if gold and all(not ch.isalnum() and not ch.isspace() for ch in gold):
-        return "PROTECTED_EVAL_ONLY", "punctuation"
-    if example["reading"] in FUNCTION_READINGS or len(example["reading"]) <= 1:
-        return "PROTECTED_EVAL_ONLY", "short_function_word"
-    if candidate.get("attributes", 0) & HARD_BITS or candidate.get("protection") == "HARD_PROTECT":
-        return "PROTECTED_EVAL_ONLY", "hard_protected_attribute"
-    return "NEURAL_ELIGIBLE", "normal_contextual"
+        eligibility, protected_reason = "PROTECTED_EVAL_ONLY", "punctuation"
+    elif any(ch.isdigit() for ch in gold) or (candidate and candidate.get("attributes", 0) & NUMBER_BIT):
+        eligibility, protected_reason = "PROTECTED_EVAL_ONLY", "number"
+    elif example.get("_source_kind") == "proper_noun":
+        eligibility, protected_reason = "PROTECTED_EVAL_ONLY", "proper_noun"
+    elif example["reading"] in FUNCTION_READINGS or len(example["reading"]) <= 1:
+        eligibility, protected_reason = "PROTECTED_EVAL_ONLY", "short_function_word"
+    elif candidate and (candidate.get("category") == "SYMBOL" or candidate.get("attributes", 0) & HARD_BITS or candidate.get("protection") == "HARD_PROTECT"):
+        eligibility, protected_reason = "PROTECTED_EVAL_ONLY", "hard_protected_attribute"
+    elif LATIN_RE.search(gold):
+        eligibility, protected_reason = "NEURAL_ELIGIBLE", "latin_mixed"
+    else:
+        eligibility, protected_reason = "NEURAL_ELIGIBLE", "normal_contextual"
+    if gold not in surfaces:
+        if gold and all(not ch.isalnum() and not ch.isspace() for ch in gold):
+            reason = "punctuation_or_symbol"
+        elif any(ch.isdigit() for ch in gold):
+            reason = "number"
+        elif example.get("_source_kind") == "proper_noun":
+            reason = "proper_noun"
+        elif LATIN_RE.search(gold):
+            reason = "latin_mixed"
+        elif example["reading"] in FUNCTION_READINGS or len(example["reading"]) <= 1:
+            reason = "function_word"
+        else:
+            reason = "normal_japanese_content"
+        return "COVERAGE_FAILURE", reason, eligibility
+    return eligibility, protected_reason, eligibility
 
 
 def record_for(example: dict[str, Any]) -> dict[str, Any]:
-    status, reason = classify(example)
+    status, reason, eligibility = classify(example)
     record = {k: example[k] for k in ("source_id", "reading", "context_prev", "gold", "target_segment_index", "candidates")}
-    record.update({"schema_version": SCHEMA_VERSION, "format_version": FORMAT_VERSION, "example_status": status, "example_reason": reason})
+    record.update({"schema_version": SCHEMA_VERSION, "format_version": FORMAT_VERSION, "example_status": status, "example_reason": reason, "eligibility_status": eligibility})
     return record
 
 
@@ -239,6 +260,9 @@ def metric_report(rows: list[dict[str, Any]], docs: int, failures: list[dict[str
     def hits(k: int):
         return sum(row["gold"] in [c["surface"] for c in row["candidates"][:k]] for row in rows)
     coverage = {f"top{k}": hits(k) / total if total else 0 for k in (1, 5, 10, 30)}
+    coverage_by_status = {}
+    for status, group in [("ALL", rows), ("NEURAL_ELIGIBLE", [r for r in rows if r.get("eligibility_status", r["example_status"]) == "NEURAL_ELIGIBLE"]), ("PROTECTED_EVAL_ONLY", [r for r in rows if r.get("eligibility_status", r["example_status"]) == "PROTECTED_EVAL_ONLY"])]:
+        coverage_by_status[status] = {f"top{k}": sum(row["gold"] in [c["surface"] for c in row["candidates"][:k]] for row in group) / len(group) if group else 0 for k in (1, 5, 10, 30)}
     conditional = [row for row in rows if row["gold"] in [c["surface"] for c in row["candidates"][:30]]]
     conditional_top = {f"top{k}": sum(row["gold"] in [c["surface"] for c in row["candidates"][:k]] for row in conditional) / len(conditional) if conditional else 0 for k in (1, 5, 10, 30)}
     lengths = [len(row["context_prev"]) for row in rows]
@@ -250,7 +274,7 @@ def metric_report(rows: list[dict[str, Any]], docs: int, failures: list[dict[str
         "examples": total, "documents": docs, "workers": workers,
         "rows_per_sec": total / elapsed if elapsed else 0, "docs_per_sec": docs / elapsed if elapsed else 0,
         "end_to_end_accuracy": {"top1": coverage["top1"], "top5": coverage["top5"]},
-        "conditional_accuracy": conditional_top, "candidate_coverage": coverage,
+        "conditional_accuracy": conditional_top, "candidate_coverage": coverage, "candidate_coverage_by_status": coverage_by_status,
         "coverage_failure_rate": status_counts.get("COVERAGE_FAILURE", 0) / total if total else 0,
         "status_counts": status_counts,
         "reason_counts": {reason: sum(row["example_reason"] == reason for row in rows) for reason in sorted({row["example_reason"] for row in rows})},
@@ -258,6 +282,11 @@ def metric_report(rows: list[dict[str, Any]], docs: int, failures: list[dict[str
         "alignment_failures": len(failures),
         "alignment_success_rate": total / (total + len(failures)) if total + len(failures) else 0,
         "alignment_failure_reasons": {reason: sum(f.get("reason") == reason for f in failures) for reason in sorted({f.get("reason") for f in failures})},
+        "alignment_failure_details": {
+            "boundary_split_morpheme": sum("boundary split" in f.get("detail", "") or "start split" in f.get("detail", "") for f in failures),
+            "reading_stream_mismatch": sum("reading" in f.get("detail", "") for f in failures),
+            "other": sum("boundary split" not in f.get("detail", "") and "start split" not in f.get("detail", "") and "reading" not in f.get("detail", "") for f in failures),
+        },
         "per_document_examples": {"min": min(per_doc.values()) if per_doc else 0, "median": median(per_doc.values()) if per_doc else 0, "max": max(per_doc.values()) if per_doc else 0, "mean": mean(per_doc.values()) if per_doc else 0},
         "context_length": {"min": min(lengths) if lengths else 0, "median": median(lengths) if lengths else 0, "max": max(lengths) if lengths else 0},
         "candidate_count": {"min": min(counts) if counts else 0, "median": median(counts) if counts else 0, "max": max(counts) if counts else 0},

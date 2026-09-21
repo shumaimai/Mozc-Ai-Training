@@ -42,13 +42,19 @@ category, converted_segment_count, protection
 `surface`-only records are rejected by
 `tools.rerank.contextual_ranking_v2_schema.validate_record`.
 
-Pilot v2 rows additionally carry `example_status` and `example_reason`:
+Pilot v2 rows additionally carry `example_status`, `example_reason`, and
+`eligibility_status`:
 
 - `NEURAL_ELIGIBLE`: normal contextual candidate suitable for future training.
 - `PROTECTED_EVAL_ONLY`: retain for evaluation, but do not train over protected
   symbol/number/punctuation/function-word cases by default.
 - `COVERAGE_FAILURE`: retain in the end-to-end denominator when gold is absent
   from top-K; reason is `gold_not_in_top_k`.
+
+`eligibility_status` preserves the underlying neural/protected population even
+when an example is a coverage failure. Status-group coverage reports use this
+field, so `NEURAL_ELIGIBLE` coverage is not made trivially 100% by removing
+coverage failures from its denominator.
 
 Ranking reports must publish both conditional metrics (gold present in top-30)
 and end-to-end metrics over all extracted examples, plus top-1/top-5/top-10/
