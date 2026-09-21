@@ -49,7 +49,7 @@ def valid_surface(text: str) -> bool:
     return has_kanji or has_katakana
 
 
-def article_stream(max_articles: int) -> Iterable[dict]:
+def article_stream(max_articles: int, *, start_article: int = 0) -> Iterable[dict]:
     ds = load_dataset(
         DATASET_NAME,
         DATASET_CONFIG,
@@ -57,7 +57,9 @@ def article_stream(max_articles: int) -> Iterable[dict]:
         streaming=True,
     )
     for i, row in enumerate(ds):
-        if i >= max_articles:
+        if i < start_article:
+            continue
+        if i >= start_article + max_articles:
             break
         yield row
 
@@ -86,10 +88,15 @@ def iter_morphemes(text: str, tok):
             yield sent_index, morph_index, reading, surface, context
 
 
-def build_candidate_map(max_articles: int, min_forms: int = 5) -> dict[str, list[str]]:
+def build_candidate_map(
+    max_articles: int,
+    min_forms: int = 5,
+    *,
+    start_article: int = 0,
+) -> dict[str, list[str]]:
     tok = dictionary.Dictionary(dict="core").create()
     counts: dict[str, collections.Counter[str]] = collections.defaultdict(collections.Counter)
-    for row in article_stream(max_articles):
+    for row in article_stream(max_articles, start_article=start_article):
         text = str(row.get("text") or "")
         for _, _, reading, surface, _ in iter_morphemes(text, tok):
             counts[reading][surface] += 1
@@ -116,13 +123,14 @@ def generate_rows(
     max_articles: int,
     max_examples: int,
     eval_ratio: float,
+    start_article: int = 0,
 ):
     tok = dictionary.Dictionary(dict="core").create()
     train: list[dict] = []
     eval_rows: list[dict] = []
     seen: set[tuple[str, str, str]] = set()
 
-    for row in article_stream(max_articles):
+    for row in article_stream(max_articles, start_article=start_article):
         article_id = str(row.get("id") or "")
         text = str(row.get("text") or "")
         for sent_i, morph_i, reading, surface, context in iter_morphemes(text, tok):
@@ -168,14 +176,20 @@ def build_public_proxy(
     example_articles: int = 6000,
     max_examples: int = 6000,
     eval_ratio: float = 0.1,
+    scan_start_article: int = 0,
+    example_start_article: int = 0,
 ) -> dict:
     out = Path(out_dir)
-    candidate_map = build_candidate_map(scan_articles)
+    candidate_map = build_candidate_map(
+        scan_articles,
+        start_article=scan_start_article,
+    )
     train, eval_rows = generate_rows(
         candidate_map,
         max_articles=example_articles,
         max_examples=max_examples,
         eval_ratio=eval_ratio,
+        start_article=example_start_article,
     )
     write_jsonl(out / "train.jsonl", train)
     write_jsonl(out / "eval.jsonl", eval_rows)
@@ -185,7 +199,9 @@ def build_public_proxy(
         "source_url": SOURCE_URL,
         "license_id": LICENSE_ID,
         "scan_articles": scan_articles,
+        "scan_start_article": scan_start_article,
         "example_articles": example_articles,
+        "example_start_article": example_start_article,
         "candidate_readings": len(candidate_map),
         "train_rows": len(train),
         "eval_rows": len(eval_rows),
@@ -206,6 +222,8 @@ def main() -> int:
     parser.add_argument("--example-articles", type=int, default=6000)
     parser.add_argument("--max-examples", type=int, default=6000)
     parser.add_argument("--eval-ratio", type=float, default=0.1)
+    parser.add_argument("--scan-start-article", type=int, default=0)
+    parser.add_argument("--example-start-article", type=int, default=0)
     args = parser.parse_args()
     meta = build_public_proxy(
         args.out,
@@ -213,6 +231,8 @@ def main() -> int:
         example_articles=args.example_articles,
         max_examples=args.max_examples,
         eval_ratio=args.eval_ratio,
+        scan_start_article=args.scan_start_article,
+        example_start_article=args.example_start_article,
     )
     print(json.dumps(meta, ensure_ascii=False, indent=2))
     return 0

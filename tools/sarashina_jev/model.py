@@ -152,6 +152,7 @@ class SarashinaJevScorer(nn.Module):
         source_model: str,
         kept_layer_indices: list[int],
         page_size: int = 5,
+        extra_meta: dict[str, Any] | None = None,
     ) -> None:
         out = Path(out_dir)
         (out / "backbone").mkdir(parents=True, exist_ok=True)
@@ -159,9 +160,7 @@ class SarashinaJevScorer(nn.Module):
         self.backbone.save_pretrained(out / "backbone", safe_serialization=True)
         tokenizer.save_pretrained(out / "tokenizer")
         torch.save(self.score_head.state_dict(), out / "score_head.pt")
-        (out / "jev_config.json").write_text(
-            json.dumps(
-                {
+        config = {
                     "source_model": source_model,
                     "kept_layer_indices": kept_layer_indices,
                     "page_size": page_size,
@@ -169,10 +168,11 @@ class SarashinaJevScorer(nn.Module):
                     "input_format": "BOS + candidate + reading + context_tail + decision_marker",
                     "lm_head": False,
                     "autoregressive_generation": False,
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
+                }
+        if extra_meta:
+            config.update(extra_meta)
+        (out / "jev_config.json").write_text(
+            json.dumps(config, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 

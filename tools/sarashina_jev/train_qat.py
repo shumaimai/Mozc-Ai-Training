@@ -313,8 +313,12 @@ def main() -> int:
             out,
             student_tokenizer,
             source_model=str(teacher_meta.get("source_model", "sarashina-jeV")),
-            kept_layer_indices=list(teacher_meta.get("kept_layer_indices", [])),
+            kept_layer_indices=list(student_meta.get("kept_layer_indices", [])),
             page_size=args.page_size,
+            extra_meta={
+                "layer_pruning": student_meta.get("layer_pruning"),
+                "parameter_report": student.parameter_report(),
+            },
         )
         (out / "qat_checkpoint.json").write_text(
             json.dumps(
