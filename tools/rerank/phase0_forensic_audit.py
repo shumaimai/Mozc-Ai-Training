@@ -67,6 +67,7 @@ def main() -> int:
             })
     status = "blocked_missing_artifacts"
     tokenizer_name = None
+    artifact_meta = {"tokenizer_path": args.tokenizer, "onnx_path": args.onnx or None}
     try:
         if not args.tokenizer:
             raise FileNotFoundError("--tokenizer is required for token IDs")
@@ -84,6 +85,7 @@ def main() -> int:
         if args.onnx:
             import numpy as np
             import onnxruntime as ort
+            artifact_meta["onnxruntime_version"] = ort.__version__
             session = ort.InferenceSession(args.onnx, providers=["CPUExecutionProvider"])
             for row in rows:
                 scores: dict[str, float] = {}
@@ -122,6 +124,7 @@ def main() -> int:
         "max_len": args.max_len,
         "tokenizer": tokenizer_name,
         "platform": platform.platform(),
+        "artifact": artifact_meta,
         "error": error,
         "metrics": {
             "token_id_exact_match_rate": token_equal / len(ids_rows) if ids_rows else None,

@@ -7,6 +7,11 @@
   "max_len": 128,
   "tokenizer": "/tmp/mozc-v2-tok/tokenizer",
   "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+  "artifact": {
+    "tokenizer_path": "/tmp/mozc-v2-tok/tokenizer",
+    "onnx_path": "/tmp/mozc-v2-audit.onnx",
+    "onnxruntime_version": "1.30.0"
+  },
   "error": null,
   "metrics": {
     "token_id_exact_match_rate": 0.0,
