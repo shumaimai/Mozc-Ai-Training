@@ -1,0 +1,25 @@
+{
+  "comparison": "qat_v2_repro vs vocab_64000 int8_dynamic_fp16_embedding",
+  "captured_from": "Modal diagnostic stdout on 2026-09-21",
+  "graph": {
+    "node_lists_equal": true,
+    "old_initializer_count": 190,
+    "new_initializer_count": 190,
+    "missing_initializers": [],
+    "changed_non_embedding_initializers": []
+  },
+  "embedding": {
+    "initializer": "backbone.embed_tokens.weight",
+    "old_shape": [102400, 1280],
+    "new_shape": [64000, 1280],
+    "unchanged_prefix_rows": 63997,
+    "prefix_max_abs_difference": 0.0,
+    "prefix_changed_elements": 0,
+    "remapped_required_tail_max_abs_difference": 0.0
+  },
+  "eval_token_ids": {
+    "maximum": 63381,
+    "count_at_or_above_63997": 0
+  },
+  "conclusion": "Every graph component and embedding row exercised by the eval set is identical; the anomalous raw INT8 result is runtime/CPU-kernel dependent rather than an export-weight difference."
+}

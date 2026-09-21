@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-09-21",
+  "evaluation": {
+    "dataset": "data/public/sarashina_jev_proxy/eval.jsonl",
+    "pages": 204,
+    "candidates_per_page": 5,
+    "candidate0_baseline_hit1": 0.7450980392156863,
+    "onnxruntime_version": "1.20.1",
+    "threads": 8,
+    "warmup_pages": 10
+  },
+  "variants": {
+    "102400": {
+      "fp32_hit1": 0.8480392156862745,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.8186274509803921,
+        "size_mib": 419.81349658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 134.46984662371355,
+          "p50": 134.42814550001003,
+          "p95": 135.7900988499921
+        },
+        "validation": "original_qat_v2_repro_report"
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.0,
+        "changed_fraction": 0.0,
+        "new_unk_tokens": 0
+      }
+    },
+    "64000": {
+      "fp32_hit1": 0.8431372549019608,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.8137254901960784,
+        "size_mib": 326.06349658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 162.5667947371133,
+          "p50": 162.7296934999993,
+          "p95": 164.21898764999696
+        },
+        "validation": "fresh_modal_container_revalidation",
+        "anomalous_raw_run_hit1": 0.2549019607843137
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.0282668343432033,
+        "max_token_length_ratio": 1.25,
+        "changed_fraction": 0.4823529411764706,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    },
+    "48000": {
+      "fp32_hit1": 0.8382352941176471,
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.7892156862745098,
+        "size_mib": 287.00099658966064,
+        "latency_ms": {
+          "count": 194,
+          "mean": 163.17772336082467,
+          "p50": 163.0217199999979,
+          "p95": 164.27054470000027
+        },
+        "validation": "fresh_modal_container_revalidation",
+        "anomalous_raw_run_hit1": 0.19607843137254902
+      },
+      "tokenizer_probe": {
+        "token_length_ratio": 1.081828055333257,
+        "max_token_length_ratio": 1.3055555555555556,
+        "changed_fraction": 1.0,
+        "new_unk_tokens": 0,
+        "large_expansion_examples": []
+      }
+    }
+  },
+  "decision": {
+    "recommended_vocab_size": 64000,
+    "proceed_to_32000": false,
+    "next_optional_vocab_size": 56000,
+    "reason": "48k lost 5 of 204 INT8 decisions versus 64k, increased token length by 8.18%, and did not improve fresh-container latency"
+  }
+}

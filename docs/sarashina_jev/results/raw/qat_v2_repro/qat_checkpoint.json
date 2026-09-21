@@ -1,0 +1,90 @@
+{
+  "args": {
+    "teacher_artifact": "/artifacts/sarashina_jev/8l_public_quick_v1",
+    "student_artifact": "/artifacts/sarashina_jev/int8_recovery/qat_v1",
+    "train": "/data/sarashina_jev_public_proxy/train.jsonl",
+    "eval": "/data/sarashina_jev_public_proxy/eval.jsonl",
+    "out": "/artifacts/sarashina_jev/int8_recovery/qat_v2_repro",
+    "page_size": 5,
+    "max_length": 128,
+    "limit": 1500,
+    "epochs": 2,
+    "batch_size": 2,
+    "grad_accum": 4,
+    "train_last_n_layers": 4,
+    "backbone_lr": 2e-06,
+    "embedding_lr": 5e-06,
+    "head_lr": 0.0001,
+    "weight_decay": 0.01,
+    "kd_weight": 1.2,
+    "mse_weight": 0.1,
+    "margin_weight": 0.0,
+    "temperature": 2.0,
+    "activation_quantization": true,
+    "quant_start": 1.0,
+    "quant_ramp_fraction": 0.35,
+    "seed": 42
+  },
+  "teacher_meta": {
+    "source_model": "sbintuitions/sarashina2.2-0.5b",
+    "kept_layer_indices": [
+      0,
+      3,
+      7,
+      10,
+      13,
+      16,
+      20,
+      23
+    ],
+    "page_size": 5,
+    "pooling": "last_non_padding_token",
+    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+    "lm_head": false,
+    "autoregressive_generation": false
+  },
+  "student_init_meta": {
+    "source_model": "sbintuitions/sarashina2.2-0.5b",
+    "kept_layer_indices": [
+      0,
+      3,
+      7,
+      10,
+      13,
+      16,
+      20,
+      23
+    ],
+    "page_size": 5,
+    "pooling": "last_non_padding_token",
+    "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+    "lm_head": false,
+    "autoregressive_generation": false
+  },
+  "teacher_eval": {
+    "hit1": 0.8480392156862745,
+    "candidate0_baseline": 0.7450980392156863,
+    "predicted_candidate0_rate": 0.7843137254901961,
+    "pages": 204.0
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "student_fake_int8_eval": {
+        "hit1": 0.8137254901960784,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.7549019607843137,
+        "pages": 204.0
+      }
+    },
+    {
+      "epoch": 2,
+      "student_fake_int8_eval": {
+        "hit1": 0.8186274509803921,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.75,
+        "pages": 204.0
+      }
+    }
+  ]
+}

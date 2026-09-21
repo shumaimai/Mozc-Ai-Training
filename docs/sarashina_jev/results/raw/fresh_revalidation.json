@@ -1,0 +1,43 @@
+{
+  "captured_from": "Modal shell stdout on 2026-09-21",
+  "cpu_model_recorded": false,
+  "onnxruntime_version": "1.20.1",
+  "threads": 8,
+  "warmup_pages": 10,
+  "eval_pages": 204,
+  "runs": {
+    "qat_v2_repro_model_with_64k_tokenizer": {
+      "hit1": 0.8137254901960784,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.75,
+      "latency_ms": {
+        "count": 194,
+        "mean": 165.41610869587606,
+        "p50": 165.51255799999964,
+        "p95": 169.27291730000195
+      }
+    },
+    "vocab_64000_int8_dynamic_fp16_embedding": {
+      "hit1": 0.8137254901960784,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.75,
+      "latency_ms": {
+        "count": 194,
+        "mean": 162.5667947371133,
+        "p50": 162.7296934999993,
+        "p95": 164.21898764999696
+      }
+    },
+    "vocab_48000_int8_dynamic_fp16_embedding": {
+      "hit1": 0.7892156862745098,
+      "candidate0_baseline": 0.7450980392156863,
+      "predicted_candidate0_rate": 0.7205882352941176,
+      "latency_ms": {
+        "count": 194,
+        "mean": 163.17772336082467,
+        "p50": 163.0217199999979,
+        "p95": 164.27054470000027
+      }
+    }
+  }
+}

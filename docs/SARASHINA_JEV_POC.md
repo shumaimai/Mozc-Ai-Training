@@ -180,3 +180,17 @@ The pipeline runs entirely in Modal after launch:
 The 0.82 accuracy gate is intentionally below the current 8L BF16 proxy result (~0.848) to allow a small quantization loss while rejecting catastrophic PTQ collapse. The gate can be overridden with `--accuracy-gate`.
 
 The pipeline keeps the scalar score head in float during ONNX quantization because its size is negligible and ranking is sensitive to the final projection.
+
+## 2026-09-21 QAT/vocabulary snapshot
+
+The exact public proxy train/eval files and the raw QAT/vocabulary-ablation JSON
+reports are committed for independent analysis:
+
+- [`data/public/sarashina_jev_proxy/`](../data/public/sarashina_jev_proxy/)
+- [`docs/sarashina_jev/results/`](sarashina_jev/results/)
+
+The current recommendation is the 64k vocabulary model: dynamic INT8 with an
+FP16 embedding reached 81.37% Hit@1 at 326.1 MiB in fresh-container
+revalidation. The 48k variant reached 78.92% at 287.0 MiB and did not improve
+latency, so the experiment stopped before 32k. See the results README for the
+Modal CPU/ONNX Runtime anomaly that affected the original raw reports.

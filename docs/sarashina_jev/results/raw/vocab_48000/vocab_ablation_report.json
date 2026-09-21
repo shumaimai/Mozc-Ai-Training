@@ -1,0 +1,258 @@
+{
+  "summary": {
+    "vocab_size": 48000,
+    "artifact": "/artifacts/sarashina_jev/vocab_ablation/48000",
+    "mixed_model": {
+      "hit1": 0.19607843137254902,
+      "size_mib": 287.00099658966064,
+      "p50_ms": 270.340487999988
+    },
+    "tokenizer_probe": {
+      "samples": 1020,
+      "changed_fraction": 1.0,
+      "old_avg_tokens": 34.30196078431373,
+      "new_avg_tokens": 37.108823529411765,
+      "token_length_ratio": 1.081828055333257,
+      "max_token_length_ratio": 1.3055555555555556,
+      "old_unk_tokens": 0,
+      "new_unk_tokens": 0,
+      "large_expansion_examples": []
+    },
+    "embedding": {
+      "original_params": 131072000,
+      "target_params": 61440000,
+      "removed_params": 69632000,
+      "fp32_saved_mib": 265.625,
+      "fp16_saved_mib": 132.8125
+    },
+    "report_path": "/artifacts/sarashina_jev/vocab_ablation/48000/onnx_mixed/int8_report.json"
+  },
+  "prune": {
+    "strategy": "low_id_prefix_plus_required_tail",
+    "original_vocab_size": 102400,
+    "target_vocab_size": 48000,
+    "removed_pieces": 54400,
+    "unchanged_prefix_size": 47997,
+    "remapped_required_pieces": [
+      {
+        "old_id": 102397,
+        "new_id": 47997,
+        "piece": "<|prefix|>",
+        "type": 3
+      },
+      {
+        "old_id": 102398,
+        "new_id": 47998,
+        "piece": "<|suffix|>",
+        "type": 3
+      },
+      {
+        "old_id": 102399,
+        "new_id": 47999,
+        "piece": "<|middle|>",
+        "type": 3
+      }
+    ],
+    "embedding": {
+      "original_params": 131072000,
+      "target_params": 61440000,
+      "removed_params": 69632000,
+      "fp32_saved_mib": 265.625,
+      "fp16_saved_mib": 132.8125
+    },
+    "special_ids": {
+      "unk": 0,
+      "bos": 1,
+      "eos": 2,
+      "pad": 3
+    },
+    "tokenizer_probe": {
+      "samples": 1020,
+      "changed_fraction": 1.0,
+      "old_avg_tokens": 34.30196078431373,
+      "new_avg_tokens": 37.108823529411765,
+      "token_length_ratio": 1.081828055333257,
+      "max_token_length_ratio": 1.3055555555555556,
+      "old_unk_tokens": 0,
+      "new_unk_tokens": 0,
+      "large_expansion_examples": []
+    }
+  },
+  "quantization": {
+    "artifact": "/artifacts/sarashina_jev/vocab_ablation/48000",
+    "source_meta": {
+      "source_model": "sbintuitions/sarashina2.2-0.5b",
+      "kept_layer_indices": [
+        0,
+        3,
+        7,
+        10,
+        13,
+        16,
+        20,
+        23
+      ],
+      "page_size": 5,
+      "pooling": "last_non_padding_token",
+      "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+      "lm_head": false,
+      "autoregressive_generation": false,
+      "vocab_pruning": {
+        "strategy": "low_id_prefix_plus_required_tail",
+        "original_vocab_size": 102400,
+        "target_vocab_size": 48000,
+        "removed_pieces": 54400,
+        "unchanged_prefix_size": 47997,
+        "remapped_required_pieces": [
+          {
+            "old_id": 102397,
+            "new_id": 47997,
+            "piece": "<|prefix|>",
+            "type": 3
+          },
+          {
+            "old_id": 102398,
+            "new_id": 47998,
+            "piece": "<|suffix|>",
+            "type": 3
+          },
+          {
+            "old_id": 102399,
+            "new_id": 47999,
+            "piece": "<|middle|>",
+            "type": 3
+          }
+        ],
+        "embedding": {
+          "original_params": 131072000,
+          "target_params": 61440000,
+          "removed_params": 69632000,
+          "fp32_saved_mib": 265.625,
+          "fp16_saved_mib": 132.8125
+        },
+        "special_ids": {
+          "unk": 0,
+          "bos": 1,
+          "eos": 2,
+          "pad": 3
+        },
+        "tokenizer_probe": {
+          "samples": 1020,
+          "changed_fraction": 1.0,
+          "old_avg_tokens": 34.30196078431373,
+          "new_avg_tokens": 37.108823529411765,
+          "token_length_ratio": 1.081828055333257,
+          "max_token_length_ratio": 1.3055555555555556,
+          "old_unk_tokens": 0,
+          "new_unk_tokens": 0,
+          "large_expansion_examples": []
+        }
+      }
+    },
+    "page_size": 5,
+    "max_length": 128,
+    "calib_pages": 384,
+    "eval_pages": 204,
+    "models": {
+      "fp32": {
+        "hit1": 0.8382352941176471,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.75,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 401.48458551546406,
+          "p50": 400.06117699996935,
+          "p95": 411.5257492500007
+        },
+        "size_mib": 909.7720556259155
+      },
+      "fp16_embedding": {
+        "hit1": 0.8382352941176471,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.75,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 391.43318258247353,
+          "p50": 389.27221250000343,
+          "p95": 407.7945115499716
+        },
+        "size_mib": 792.5847215652466,
+        "delta_hit1_vs_fp32": 0.0
+      },
+      "int8_dynamic": {
+        "hit1": 0.19607843137254902,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.19117647058823528,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 255.8582110257717,
+          "p50": 256.9420810000054,
+          "p95": 269.4164251499785
+        },
+        "size_mib": 404.1882543563843,
+        "delta_hit1_vs_fp32": -0.6421568627450981
+      },
+      "int8_dynamic_fp16_embedding": {
+        "hit1": 0.19607843137254902,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.19117647058823528,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 273.6162936391802,
+          "p50": 270.340487999988,
+          "p95": 299.3797201999996
+        },
+        "size_mib": 287.00099658966064,
+        "delta_hit1_vs_fp32": -0.6421568627450981
+      },
+      "int8_dynamic_gather": {
+        "hit1": 0.22549019607843138,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.17647058823529413,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 273.7560372268012,
+          "p50": 273.379660499927,
+          "p95": 283.91269729999635
+        },
+        "size_mib": 228.4073543548584,
+        "delta_hit1_vs_fp32": -0.6127450980392157
+      },
+      "int8_qdq": {
+        "hit1": 0.25,
+        "candidate0_baseline": 0.7450980392156863,
+        "predicted_candidate0_rate": 0.24509803921568626,
+        "pages": 204,
+        "latency_ms": {
+          "count": 194,
+          "mean": 326.6774702938129,
+          "p50": 325.20757399998956,
+          "p95": 341.69086574999596
+        },
+        "size_mib": 228.47650241851807,
+        "delta_hit1_vs_fp32": -0.5882352941176471
+      }
+    },
+    "fp16_embedding_info": {
+      "converted": [
+        {
+          "initializer": "backbone.embed_tokens.weight",
+          "shape": [
+            48000,
+            1280
+          ],
+          "elements": 61440000
+        }
+      ],
+      "count": 1
+    },
+    "dynamic_gather_error": null,
+    "preferred_if_accuracy_holds": "smallest INT8 variant within the accuracy gate",
+    "note": "int8_qdq includes Gather so the token embedding can be quantized. If Hit@1 regresses materially, move to QAT/quantization-aware distillation."
+  }
+}

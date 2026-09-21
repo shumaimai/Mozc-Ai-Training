@@ -1,0 +1,51 @@
+{
+  "strategy": "low_id_prefix_plus_required_tail",
+  "original_vocab_size": 102400,
+  "target_vocab_size": 64000,
+  "removed_pieces": 38400,
+  "unchanged_prefix_size": 63997,
+  "remapped_required_pieces": [
+    {
+      "old_id": 102397,
+      "new_id": 63997,
+      "piece": "<|prefix|>",
+      "type": 3
+    },
+    {
+      "old_id": 102398,
+      "new_id": 63998,
+      "piece": "<|suffix|>",
+      "type": 3
+    },
+    {
+      "old_id": 102399,
+      "new_id": 63999,
+      "piece": "<|middle|>",
+      "type": 3
+    }
+  ],
+  "embedding": {
+    "original_params": 131072000,
+    "target_params": 81920000,
+    "removed_params": 49152000,
+    "fp32_saved_mib": 187.5,
+    "fp16_saved_mib": 93.75
+  },
+  "special_ids": {
+    "unk": 0,
+    "bos": 1,
+    "eos": 2,
+    "pad": 3
+  },
+  "tokenizer_probe": {
+    "samples": 1020,
+    "changed_fraction": 0.4823529411764706,
+    "old_avg_tokens": 34.30196078431373,
+    "new_avg_tokens": 35.27156862745098,
+    "token_length_ratio": 1.0282668343432033,
+    "max_token_length_ratio": 1.25,
+    "old_unk_tokens": 0,
+    "new_unk_tokens": 0,
+    "large_expansion_examples": []
+  }
+}

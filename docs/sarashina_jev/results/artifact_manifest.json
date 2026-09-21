@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "storage": "Modal volume mozc-artifacts",
+  "included_in_git": false,
+  "reason": "Model and ONNX files exceed normal GitHub file limits; raw JSON reports, source code, and the exact public proxy dataset are committed instead.",
+  "artifacts": [
+    {
+      "name": "qat_v2_repro dynamic INT8 + FP16 embedding",
+      "path": "/artifacts/sarashina_jev/int8_recovery/qat_v2_repro/onnx_mixed/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+      "size_mib": 419.81349658966064
+    },
+    {
+      "name": "qat_v2_repro FP32",
+      "path": "/artifacts/sarashina_jev/int8_recovery/qat_v2_repro/onnx_mixed/sarashina_jev_fp32.onnx",
+      "size_mib": 1175.3970575332642
+    },
+    {
+      "name": "64k dynamic INT8 + FP16 embedding",
+      "path": "/artifacts/sarashina_jev/vocab_ablation/64000/onnx_mixed/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+      "size_mib": 326.06349658966064
+    },
+    {
+      "name": "48k dynamic INT8 + FP16 embedding",
+      "path": "/artifacts/sarashina_jev/vocab_ablation/48000/onnx_mixed/sarashina_jev_int8_dynamic_fp16_embedding.onnx",
+      "size_mib": 287.00099658966064
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "source_model": "sbintuitions/sarashina2.2-0.5b",
+  "kept_layer_indices": [
+    0,
+    3,
+    7,
+    10,
+    13,
+    16,
+    20,
+    23
+  ],
+  "page_size": 5,
+  "pooling": "last_non_padding_token",
+  "input_format": "BOS + candidate + reading + context_tail + decision_marker",
+  "lm_head": false,
+  "autoregressive_generation": false
+}
