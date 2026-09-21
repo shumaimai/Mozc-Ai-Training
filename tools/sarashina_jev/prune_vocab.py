@@ -15,7 +15,7 @@ from pathlib import Path
 import torch
 from torch import nn
 from transformers import AutoTokenizer
-from sentencepiece import sentencepiece_model_pb2 as sp_pb2
+from transformers.utils import sentencepiece_model_pb2_new as sp_pb2
 
 from tools.sarashina_jev.data import build_candidate_text, read_jsonl
 from tools.sarashina_jev.model import SarashinaJevScorer
