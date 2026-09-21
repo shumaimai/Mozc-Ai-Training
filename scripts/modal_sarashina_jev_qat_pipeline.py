@@ -421,6 +421,68 @@ def pipeline(
     timeout=8 * 60 * 60,
     volumes={"/artifacts": artifacts},
 )
+def reproduce_qat_v2(
+    teacher_artifact: str = "/artifacts/sarashina_jev/8l_public_quick_v1",
+    student_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v1",
+    train_path: str = "/data/sarashina_jev_public_proxy/train.jsonl",
+    eval_path: str = "/data/sarashina_jev_public_proxy/eval.jsonl",
+    limit: int = 1500,
+):
+    root = "/artifacts/sarashina_jev/int8_recovery"
+    out = f"{root}/qat_v2_repro"
+    print(
+        f"REPRO_QAT_V2 teacher={teacher_artifact} student={student_artifact}",
+        flush=True,
+    )
+    # Exact v2 recipe that previously recovered dynamic INT8: activation QAT ON.
+    qat_train.remote(
+        teacher_artifact,
+        student_artifact,
+        out,
+        train_path,
+        eval_path,
+        2,
+        limit,
+        2e-6,
+        5e-6,
+        1e-4,
+        1.2,
+        0.10,
+        0.0,
+        1.0,
+        True,
+    )
+    report = export_eval.remote(
+        out,
+        train_path,
+        eval_path,
+        f"{out}/onnx_mixed",
+        384,
+    )
+    best = _best_compact(report, max_size_mib=450.0)
+    result = {
+        "stage": "qat_v2_repro",
+        **best,
+        "report_path": f"{out}/onnx_mixed/int8_report.json",
+    }
+    artifacts.reload()
+    report_path = Path(root) / "qat_v2_repro_report.json"
+    report_path.write_text(
+        json.dumps({"best": result, "report": report}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    artifacts.commit()
+    print("QAT_V2_REPRO_DONE", json.dumps(result), flush=True)
+    return result
+
+
+@app.function(
+    image=orchestrator_image,
+    cpu=1.0,
+    memory=1024,
+    timeout=8 * 60 * 60,
+    volumes={"/artifacts": artifacts},
+)
 def resume_qat_v3(
     teacher_artifact: str = "/artifacts/sarashina_jev/8l_public_quick_v1",
     student_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v2",
@@ -493,8 +555,25 @@ def main(
     limit: int = 1500,
     accuracy_gate: float = 0.82,
     resume_v3_only: bool = False,
+    reproduce_v2_only: bool = False,
     qat_v2_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v2",
+    qat_v1_artifact: str = "/artifacts/sarashina_jev/int8_recovery/qat_v1",
 ):
+    if reproduce_v2_only:
+        call = reproduce_qat_v2.spawn(
+            teacher_artifact=teacher_artifact,
+            student_artifact=qat_v1_artifact,
+            train_path=train_path,
+            eval_path=eval_path,
+            limit=limit,
+        )
+        print(
+            f"SPAWNED qat_v2_repro_call_id={call.object_id} "
+            f"student={qat_v1_artifact}",
+            flush=True,
+        )
+        return
+
     if resume_v3_only:
         call = resume_qat_v3.spawn(
             teacher_artifact=teacher_artifact,
