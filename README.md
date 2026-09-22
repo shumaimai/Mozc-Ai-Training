@@ -128,3 +128,8 @@ Mozc由来コードはMozcのBSDライセンスに従います。基盤モデル
 `sbintuitions/modernbert-ja-30m` はMITライセンスです。取得する各データソースと
 Python依存関係にはそれぞれの利用条件が適用されます。
 
+## 開発支援への謝辞
+
+- **ChatGPT (OpenAI)** — データセットとリランカー学習の設計、実験計画、コードレビュー・不具合調査を支援しました（例: [実験PR #5](https://github.com/shumaimai/Mozc-Ai-Training/pull/5)、[v2設計PR #6](https://github.com/shumaimai/Mozc-Ai-Training/pull/6)）。
+
+AIによる支援の記録であり、Gitコミットの著者・責任者やOpenAIによる公式な承認を意味しません。
