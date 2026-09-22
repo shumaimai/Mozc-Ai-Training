@@ -26,7 +26,19 @@ DATA_ROOT = "data/contextual_ranking_v2_production_runtime_context/dataset"
 TRAIN_PATH = f"{DATA_ROOT}/train.jsonl.gz"
 VALIDATION_PATH = f"{DATA_ROOT}/validation.jsonl.gz"
 MODEL = "sbintuitions/modernbert-ja-30m"
-OUT = "/artifacts/phase2_dataset_v2_runtime_context_modernbert_ja_30m"
+OUT = "/artifacts/phase2_dataset_v2_runtime_context_modernbert_ja_30m_format_v2"
+EXPECTED_VALIDATION_ROWS = 5974
+EXPECTED_NEURAL_ELIGIBLE = 4021
+
+
+def assert_validation_counts(neural_groups: int, all_groups: int) -> None:
+    """Fail closed if corrected validation is not fully scored."""
+    if all_groups != EXPECTED_VALIDATION_ROWS or neural_groups != EXPECTED_NEURAL_ELIGIBLE:
+        raise RuntimeError(
+            "validation count mismatch: "
+            f"all={all_groups}/{EXPECTED_VALIDATION_ROWS} "
+            f"neural_eligible={neural_groups}/{EXPECTED_NEURAL_ELIGIBLE}"
+        )
 
 app = modal.App(APP_NAME)
 image = (
@@ -78,7 +90,9 @@ def _train_args(
         eligibility_status="NEURAL_ELIGIBLE",
         init_ckpt="",
         resume="",
-        auto_resume=auto_resume,
+        # Fresh official baseline. The previous [SEP] checkpoint is provisional
+        # and must not be auto-resumed into this formatter.
+        auto_resume=False,
         on_checkpoint=None,
     )
 
@@ -155,6 +169,7 @@ def train_and_validate(
     # Validation drives model selection. Write both the primary trainable
     # subset and ALL rows so protected/coverage-limited behavior remains
     # observable, while never loading final_test.
+    observed: dict[str, int] = {}
     for label, status in (("neural_eligible", "NEURAL_ELIGIBLE"), ("all", "")):
         eval_out = str(out_dir / f"validation_{label}_margin.json")
         argv = [
@@ -175,8 +190,71 @@ def train_and_validate(
         rc = eval_main(argv)
         if rc != 0:
             raise RuntimeError(f"validation failed label={label} rc={rc}")
+        payload = json.loads(Path(eval_out).read_text(encoding="utf-8"))
+        observed[label] = int(payload.get("n_groups") or 0)
         artifacts.commit()
+    assert_validation_counts(observed["neural_eligible"], observed["all"])
+    print(
+        "VALIDATION_COUNTS "
+        f"all={observed['all']} neural_eligible={observed['neural_eligible']}",
+        flush=True,
+    )
     print(f"DONE -> {out}", flush=True)
+
+
+@app.function(
+    image=image,
+    gpu="L4",
+    timeout=60 * 60,
+    volumes={"/artifacts": artifacts, "/root/.cache/huggingface": hf_cache},
+)
+def validate_existing(
+    ckpt: str = OUT,
+    max_len: int = 128,
+) -> None:
+    """Re-score an already trained checkpoint. Never retrains."""
+    os.chdir("/root/repo")
+    if "/root/repo" not in sys.path:
+        sys.path.insert(0, "/root/repo")
+    from tools.rerank.eval_cross_encoder import main as eval_main
+    from tools.rerank.privacy import ensure_public_modal_paths
+
+    ensure_public_modal_paths(VALIDATION_PATH, datasets=True)
+    ensure_public_modal_paths(ckpt)
+    if Path("/root/repo/data/contextual_ranking_v2_production_runtime_context/dataset/final_test.jsonl.gz").exists():
+        raise RuntimeError("final_test must not be mounted")
+    out_dir = Path(ckpt)
+    observed: dict[str, int] = {}
+    for label, status in (("neural_eligible", "NEURAL_ELIGIBLE"), ("all", "")):
+        eval_out = str(out_dir / f"validation_{label}_margin.json")
+        argv = [
+            "--data", VALIDATION_PATH,
+            "--ckpt", ckpt,
+            "--out", eval_out,
+            "--device", "cuda",
+            "--require-cuda",
+            "--batch-size", "1024",
+            "--max-len", str(max_len),
+            "--cand-cap", "30",
+            "--tau", "0",
+            "--tau-sweep", "0,0.25,0.5,0.75,1,1.25,1.5,2,2.5,3,4,5",
+        ]
+        if status:
+            argv.extend(["--eligibility-status", status])
+        print("VALIDATE", label, " ".join(argv), flush=True)
+        rc = eval_main(argv)
+        if rc != 0:
+            raise RuntimeError(f"validation failed label={label} rc={rc}")
+        payload = json.loads(Path(eval_out).read_text(encoding="utf-8"))
+        observed[label] = int(payload.get("n_groups") or 0)
+        artifacts.commit()
+    assert_validation_counts(observed["neural_eligible"], observed["all"])
+    print(
+        "VALIDATION_COUNTS "
+        f"all={observed['all']} neural_eligible={observed['neural_eligible']}",
+        flush=True,
+    )
+    print(f"VALIDATION_DONE -> {ckpt}", flush=True)
 
 
 @app.local_entrypoint()

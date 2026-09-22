@@ -157,7 +157,12 @@ def prepare_groups(
             continue
         reading = row.get("reading") or ""
         gold = row.get("gold") or ""
-        nbest = [c for c in (row.get("mozc_nbest") or []) if c]
+        raw_nbest = row.get("mozc_nbest") or row.get("candidates") or []
+        nbest = [
+            c.get("surface") if isinstance(c, dict) else c
+            for c in raw_nbest
+        ]
+        nbest = [c for c in nbest if c]
         if not reading or not nbest:
             continue
         seen: set[str] = set()
@@ -167,6 +172,8 @@ def prepare_groups(
                 continue
             seen.add(c)
             cands.append(c)
+        # Dataset v2 has no separate mozc_top1 field. Rank 0 of the frozen
+        # candidate payload is Mozc top-1.
         mozc_top1 = row.get("mozc_top1") or cands[0]
         # Ensure Mozc top-1 is scoreable even if extractor omitted it.
         if mozc_top1 not in seen:
@@ -451,6 +458,11 @@ def main(argv: list[str] | None = None) -> int:
         groups = groups[: args.limit]
     if args.latency_only:
         groups = groups[: max(1, args.latency_groups)]
+    if not groups:
+        raise SystemExit(
+            "evaluation produced 0 groups; refusing a zero-metric success "
+            f"(rows={len(rows)} eligibility={sorted(eligibility_statuses or ()) or ['ALL']})"
+        )
 
     print(
         f"groups={len(groups)} eligibility_status="

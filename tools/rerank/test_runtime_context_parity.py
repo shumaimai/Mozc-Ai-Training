@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.rerank.context_clip import runtime_context_prev
+from tools.rerank.contextual_ranking_v2_contract import format_v2
 from tools.rerank.train_cross_encoder import build_pair_text
 
 

@@ -20,14 +20,12 @@ from pathlib import Path
 from typing import Any
 
 from tools.dataset.jsonl import read_jsonl
+from tools.rerank.contextual_ranking_v2_contract import format_v2
 
 
 def build_pair_text(reading: str, context_prev: str, candidate: str) -> str:
-    parts = [f"読み: {reading}"]
-    if context_prev:
-        parts.append(f"文脈: {context_prev}")
-    parts.append(f"候補: {candidate}")
-    return " [SEP] ".join(parts)
+    """Canonical Dataset v2 prompt. Empty context stays an explicit field."""
+    return format_v2(reading, context_prev or "", candidate)
 
 
 @dataclass
@@ -271,8 +269,12 @@ def command_train(args: argparse.Namespace) -> int:
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    resume_path = Path(getattr(args, "resume", "") or "")
-    if getattr(args, "auto_resume", False) and not resume_path:
+    # argparse default is "", and Path("") is a relative path that is not a
+    # file. Treat only a non-empty existing checkpoint as a resume source so
+    # auto_resume cannot load an empty path or silently continue a failed run.
+    raw_resume = str(getattr(args, "resume", "") or "").strip()
+    resume_path = Path(raw_resume) if raw_resume else None
+    if getattr(args, "auto_resume", False) and resume_path is None:
         cand = out_dir / "checkpoint_latest.pt"
         if cand.is_file():
             resume_path = cand
