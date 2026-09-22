@@ -97,12 +97,17 @@ def train_and_validate(
     save_every: int = 200,
     auto_resume: bool = True,
 ) -> None:
+    os.chdir("/root/repo")
+    if "/root/repo" not in sys.path:
+        sys.path.insert(0, "/root/repo")
+
+    # Modal invokes the function outside the mounted repository directory.
+    # Make the mounted ``tools`` package importable before using its privacy
+    # guard or trainer modules.
     from tools.rerank.privacy import ensure_public_modal_paths
 
     ensure_public_modal_paths(TRAIN_PATH, VALIDATION_PATH, datasets=True)
     ensure_public_modal_paths(out)
-    os.chdir("/root/repo")
-    sys.path.insert(0, "/root/repo")
 
     from tools.rerank.eval_cross_encoder import main as eval_main
     from tools.rerank.train_cross_encoder import command_train
