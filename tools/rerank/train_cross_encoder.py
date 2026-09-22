@@ -67,18 +67,25 @@ def expand_groups(
         ):
             skipped_eligibility += 1
             continue
-        if require_gold_in_nbest and not row.get("gold_in_nbest"):
-            skipped += 1
-            continue
         reading = row.get("reading") or ""
         gold = row.get("gold") or ""
         ctx = row.get("context_prev") or ""
-        nbest = list(row.get("mozc_nbest") or [])
+        nbest = list(row.get("mozc_nbest") or row.get("candidates") or [])
+        # Dataset v2 stores rich candidate objects rather than the legacy
+        # `mozc_nbest` string list.  Honor an explicit annotation when
+        # present, otherwise derive coverage from the actual payload.
+        nbest_surfaces = [
+            c.get("surface") if isinstance(c, dict) else c for c in nbest
+        ]
+        gold_in_nbest = bool(row.get("gold_in_nbest", gold in nbest_surfaces))
+        if require_gold_in_nbest and not gold_in_nbest:
+            skipped += 1
+            continue
         if not reading or not gold:
             continue
         cands: list[str] = []
         seen: set[str] = set()
-        for c in [gold, *nbest]:
+        for c in [gold, *nbest_surfaces]:
             if not c or c in seen:
                 continue
             seen.add(c)

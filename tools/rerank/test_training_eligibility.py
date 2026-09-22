@@ -48,6 +48,18 @@ class TrainingEligibilityTest(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0]["eligibility_status"], "NEURAL_ELIGIBLE")
 
+    def test_dataset_v2_candidate_objects_derive_gold_coverage(self):
+        row = _row("NEURAL_ELIGIBLE", "汽車")
+        row.pop("gold_in_nbest")
+        row.pop("mozc_nbest")
+        row["candidates"] = [{"surface": "汽車"}, {"surface": "記者"}]
+        pairs = expand_groups(
+            [row],
+            require_gold_in_nbest=True,
+            eligibility_statuses={"NEURAL_ELIGIBLE"},
+        )
+        self.assertEqual(sum(pair.label for pair in pairs), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
