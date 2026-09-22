@@ -1,0 +1,7 @@
+{"boundary": 63, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 8, "source_id": "wikipedia-ja:246"}
+{"boundary": 39, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 8, "source_id": "wikipedia-ja:246"}
+{"boundary": 44, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 13, "source_id": "wikipedia-ja:246"}
+{"boundary": 43, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 18, "source_id": "wikipedia-ja:246"}
+{"boundary": 19, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 2, "source_id": "wikipedia-ja:246"}
+{"boundary": 41, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 2, "source_id": "wikipedia-ja:246"}
+{"boundary": 23, "detail": "RuntimeError:converter exited with -15", "reason": "CONVERTER_FAILURE", "sentence_index": 0, "source_id": "wikipedia-ja:246"}

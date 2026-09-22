@@ -42,8 +42,9 @@ category, converted_segment_count, protection
 `surface`-only records are rejected by
 `tools.rerank.contextual_ranking_v2_schema.validate_record`.
 
-Pilot v2 rows additionally carry `example_status`, `example_reason`, and
-`eligibility_status`:
+Pilot v2 rows additionally carry `example_status`, `example_reason`,
+`eligibility_status`, and `source_kind` when known. `source_kind=proper_noun`
+is metadata, not a permanent protection decision.
 
 - `NEURAL_ELIGIBLE`: normal contextual candidate suitable for future training.
 - `PROTECTED_EVAL_ONLY`: retain for evaluation, but do not train over protected
@@ -59,6 +60,14 @@ coverage failures from its denominator.
 Ranking reports must publish both conditional metrics (gold present in top-30)
 and end-to-end metrics over all extracted examples, plus top-1/top-5/top-10/
 top-30 candidate coverage.
+
+The final pilot design scans all natural prefix events before sampling. Within
+each document it retains the lowest deterministic SHA-256 priorities using
+`seed|source_id|sentence_index|boundary|reading|gold`, with a configurable
+per-document cap. Document shards are resumable and the final merge is sorted
+by stable source/event keys. Candidate-cap ablations use one shared sampled
+event set and report ALL, eligibility subsets, and source-kind subsets through
+top-100 where available.
 
 ## Runtime parity
 

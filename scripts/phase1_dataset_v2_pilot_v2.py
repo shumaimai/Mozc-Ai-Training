@@ -13,6 +13,8 @@ import json
 import os
 import platform
 import re
+import select
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -121,21 +123,36 @@ def parse_segments(lines: list[str], top_k: int) -> list[dict[str, Any]]:
 
 def query_segments(reading: str, exe: str, cwd: str, top_k: int) -> list[dict[str, Any]]:
     proc = getattr(v1._thread_state, "proc", None)
-    if proc is None or proc.poll() is not None:
+    proc_top_k = getattr(v1._thread_state, "proc_top_k", None)
+    if proc is None or proc.poll() is not None or proc_top_k != top_k:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
         proc = v1._converter(exe, cwd, top_k)
         v1._thread_state.proc = proc
+        v1._thread_state.proc_top_k = top_k
+        v1._thread_state.stdout_buffer = b""
     assert proc.stdin is not None and proc.stdout is not None
     proc.stdin.write(f"startconversion {reading}\n")
     proc.stdin.flush()
-    lines: list[str] = []
+    fd = proc.stdout.buffer.fileno()
+    buffered = getattr(v1._thread_state, "stdout_buffer", b"")
+    chunks = buffered
+    started = time.monotonic()
     while True:
-        line = proc.stdout.readline()
-        if line == "":
+        remaining = max(0.1, 10.0 - (time.monotonic() - started))
+        ready, _, _ = select.select([fd], [], [], remaining)
+        if not ready:
+            proc.terminate()
+            raise TimeoutError(f"converter response timeout for {reading!r}")
+        chunk = os.read(fd, 65536)
+        if not chunk:
             raise RuntimeError(f"converter exited with {proc.poll()}")
-        if line == "\n" and lines:
+        chunks += chunk
+        if b"\n\n" in chunks:
+            payload, buffered = chunks.split(b"\n\n", 1)
+            v1._thread_state.stdout_buffer = buffered
             break
-        lines.append(line)
-    return parse_segments(lines, top_k)
+    return parse_segments(payload.decode("utf-8", errors="replace").splitlines(True), top_k)
 
 
 def sentence_spans(text: str):
@@ -249,6 +266,10 @@ def record_for(example: dict[str, Any]) -> dict[str, Any]:
     status, reason, eligibility = classify(example)
     record = {k: example[k] for k in ("source_id", "reading", "context_prev", "gold", "target_segment_index", "candidates")}
     record.update({"schema_version": SCHEMA_VERSION, "format_version": FORMAT_VERSION, "example_status": status, "example_reason": reason, "eligibility_status": eligibility})
+    if example.get("_source_kind"):
+        record["source_kind"] = example["_source_kind"]
+    if "_source_position_ratio" in example:
+        record["source_position_ratio"] = example["_source_position_ratio"]
     return record
 
 

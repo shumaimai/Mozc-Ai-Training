@@ -94,18 +94,19 @@ to the right of the target.
 
 ## 5. Production sampling design
 
-The 100-document pilot intentionally uses the fixed streaming prefix for
-reproducibility. Production must not use that prefix. The planned selection is
-one-pass deterministic priority sampling across the complete corpus:
+The earlier 100-document pilot used a fixed streaming prefix for
+reproducibility. The final design pilot replaces that per-document first-N
+behavior with one-pass deterministic priority sampling across the complete
+article:
 
 ```text
 priority = SHA256(seed || source_id)
 keep the N lowest (priority, source_id) pairs
 ```
 
-This is bounded-memory reservoir/priority sampling, deterministic across worker
-counts, and distributes documents across the corpus. The selected source
-manifest and checksum become immutable inputs to the eventual Dataset v2 run.
+This is bounded-memory priority sampling within each document, deterministic
+across worker counts and resume order. The selected source manifest and
+checksum become immutable inputs to the eventual Dataset v2 run.
 
 ## Gate
 
@@ -113,3 +114,56 @@ The parity pilot is complete and committed, but the alignment and throughput
 results do **not** authorize large-scale Dataset v2 generation yet. Keep
 train/validation production generation and model training paused pending review
 of the prefix throughput/coverage tradeoff.
+
+## 6. Final dataset-design pilot: within-document sampling and candidate caps
+
+The final 100-document pilot scanned **59,292** natural SplitMode-A prefix
+events before sampling. It found 57,416 alignment successes and 1,876 raw
+failures, for a raw alignment success rate of **96.836%**. After deduplication,
+56,818 valid events were available. Each document then selected at most 50
+events using:
+
+```text
+SHA256(seed | source_id | sentence_index | boundary | reading | gold)
+```
+
+with seed `contextual-ranking-v2-pilot-v3`, retaining the lowest priorities.
+The result was 4,985 sampled rows. Sampled source positions were front/middle/
+back = **1,858 / 1,565 / 1,562**; the corresponding scanned-valid distribution
+was **19,509 / 19,054 / 18,853**. This removes the former per-document prefix
+bias. The runner now writes per-document shards before merge and is safe to
+resume; this completed pilot's raw merged artifacts are preserved below.
+
+The candidate-cap comparison uses the same sampled event identities for every
+cap. The complete ALL, NEURAL_ELIGIBLE, PROTECTED_EVAL_ONLY, proper_noun,
+normal_contextual, and latin_mixed curves for top1/5/10/20/30/50/100 are in
+the raw [report.json](results/raw/phase1_dataset_design_pilot/report.json).
+The key NEURAL_ELIGIBLE curve is:
+
+| cap | top1 | top5 | top10 | top20 | top30 | top50 | top100 | serialized MiB |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 10 | 83.26% | 92.90% | 93.75% | 93.75% | 93.75% | 93.75% | 93.75% | 10.53 |
+| 20 | 83.26% | 92.90% | 93.75% | 94.29% | 94.29% | 94.29% | 94.29% | 14.94 |
+| 30 | 83.26% | 92.90% | 93.75% | 94.29% | 94.47% | 94.47% | 94.47% | 17.75 |
+| 50 | 83.26% | 92.90% | 93.75% | 94.29% | 94.47% | 94.53% | 94.53% | 20.93 |
+| 100 | 83.26% | 92.90% | 93.75% | 94.29% | 94.47% | 94.53% | 94.55% | 25.10 |
+
+Extraction cost was **64,277 queries**, with query latency p50/p95/max of
+**85.2 / 808.4 / 10,012.2 ms** on the i7-1060NG7, and overall sampled output
+throughput **3.21 rows/sec** / **0.064 docs/sec**. Median/p95 candidate count
+at cap100 was 13/100. Seven selected events failed during top100 enrichment;
+they are retained in `enrichment_failures.jsonl` and are not silently counted
+as valid rows.
+
+`source_kind` is persisted in every pilot record. Proper nouns remain
+available for future protected, delta-only, or neural-eligible policy
+comparisons; this pilot does not make permanent hard-protection policy.
+
+### Dataset design gate
+
+**PHASE1_DATASET_DESIGN_GATE = PASS_CANDIDATE (100-doc pilot only).** The
+sampling algorithm is deterministic and resume-safe, raw alignment events and
+enrichment failures are preserved, and candidate-cap curves are reproducible.
+Large-scale generation, production train/validation/test splitting, and model
+training remain explicitly paused pending review of the extraction cost and
+the 7 enrichment failures.
