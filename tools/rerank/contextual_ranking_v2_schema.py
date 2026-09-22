@@ -68,6 +68,18 @@ def validate_record(record: Any) -> list[str]:
         errors.append("context_prev_invalid")
     if not isinstance(record["target_segment_index"], int) or record["target_segment_index"] < 0:
         errors.append("target_segment_index_invalid")
+    # Optional production-parity metadata.  Kept optional for all existing
+    # pilot records, but when present it proves the target is the final Mozc
+    # conversion segment rather than an earlier segment exposed to future text.
+    if "conversion_segments_size" in record:
+        if not isinstance(record["conversion_segments_size"], int) or record["conversion_segments_size"] < 1:
+            errors.append("conversion_segments_size_invalid")
+        elif isinstance(record["target_segment_index"], int) and record["target_segment_index"] != record["conversion_segments_size"] - 1:
+            errors.append("target_segment_not_last")
+    if "eligibility_status" in record and record["eligibility_status"] not in {"NEURAL_ELIGIBLE", "PROTECTED_EVAL_ONLY", "COVERAGE_LIMITED"}:
+        errors.append("eligibility_status_invalid")
+    if "proper_noun" in record and not isinstance(record["proper_noun"], bool):
+        errors.append("proper_noun_invalid")
     if "example_status" in record and record["example_status"] not in EXAMPLE_STATUSES:
         errors.append("example_status_invalid")
     if "example_reason" in record and (not isinstance(record["example_reason"], str) or not record["example_reason"]):

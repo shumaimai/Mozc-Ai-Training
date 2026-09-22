@@ -73,6 +73,7 @@ __pycache__/
 # remain visible and versioned; already tracked files are unaffected.
 /scripts/*
 !/scripts/modal_*.py
+!/scripts/phase1_freeze_wikipedia_sources.py
 !/scripts/rocm_*.py
 !/scripts/run_rerank_gpu_train.sh
 !/scripts/run_deepseek_wikidata_batches.ps1
