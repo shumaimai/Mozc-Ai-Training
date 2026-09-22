@@ -166,4 +166,6 @@ sampling algorithm is deterministic and resume-safe, raw alignment events and
 enrichment failures are preserved, and candidate-cap curves are reproducible.
 Large-scale generation, production train/validation/test splitting, and model
 training remain explicitly paused pending review of the extraction cost and
-the 7 enrichment failures.
+the 7 enrichment failures. The input reconstruction note records that this
+pilot reused the same document identities but not a byte-identical dump
+snapshot; a final run must freeze the dump-derived input shards first.
