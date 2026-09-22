@@ -1,0 +1,5 @@
+{"case_id":"committed_only","previous_committed_text":"新聞の","conversion_prefix_top1":[],"target_segment_index":0,"expected_context_prev":"新聞の"}
+{"case_id":"multisegment_top1","previous_committed_text":"昨日は雨だった。","conversion_prefix_top1":["駅に","電車で"],"target_segment_index":2,"expected_context_prev":"駅に電車で"}
+{"case_id":"top1_not_source_surface","previous_committed_text":"","conversion_prefix_top1":["東京","都へ"],"target_segment_index":2,"expected_context_prev":"東京都へ"}
+{"case_id":"sentence_and_50_char_clip","previous_committed_text":"これは前の文です。あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろ","conversion_prefix_top1":["駅に"],"target_segment_index":1,"expected_context_prev":"あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろ駅に"}
+{"case_id":"markup_cleaning","previous_committed_text":"前文。[[東京|とうきょう]] <ref>x</ref>","conversion_prefix_top1":["駅"],"target_segment_index":1,"expected_context_prev":"とうきょう 駅"}

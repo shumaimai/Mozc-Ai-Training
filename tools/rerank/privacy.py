@@ -16,6 +16,11 @@ _SENSITIVE = re.compile(
     re.IGNORECASE,
 )
 
+_PUBLIC_MODAL_DATASET_PREFIXES = (
+    "data/rerank_ctx/",
+    "data/contextual_ranking_v2_production_runtime_context/dataset/",
+)
+
 
 def ensure_public_modal_paths(*paths: str, datasets: bool = False) -> None:
     """Reject paths that could expose personal data to a cloud worker."""
@@ -30,8 +35,8 @@ def ensure_public_modal_paths(*paths: str, datasets: bool = False) -> None:
                 (".log", ".jsonl.log")
             ):
                 raise ValueError(f"refusing sensitive Modal path: {value}")
-            if datasets and not normalized.startswith("data/rerank_ctx/"):
+            if datasets and not normalized.startswith(_PUBLIC_MODAL_DATASET_PREFIXES):
                 raise ValueError(
-                    "Modal datasets must come from the staged public directory "
-                    f"data/public/rerank_ctx (remote path data/rerank_ctx): {value}"
+                    "Modal datasets must come from an explicitly staged public "
+                    f"dataset directory: {value}"
                 )

@@ -101,6 +101,26 @@ class Phase0ContractTest(unittest.TestCase):
         }
         self.assertEqual(validate_record(record), [])
 
+    def test_runtime_parity_metadata_is_validated_when_present(self):
+        record = {
+            "schema_version": SCHEMA_VERSION,
+            "format_version": RECORD_FORMAT_VERSION,
+            "source_id": "fixture:runtime",
+            "reading": "きしゃ",
+            "context_prev": "駅に電車で",
+            "gold": "汽車",
+            "target_segment_index": 1,
+            "conversion_segments_size": 2,
+            "sampling_identity": "a" * 64,
+            "context_builder": "runtime_preceding_text_plus_conversion_top1-v1",
+            "candidates": [{
+                "surface": "汽車", "rank": 0, "cost": 100, "cost_delta": 0,
+                "lid": 1, "rid": 2, "attributes": 0, "category": "DEFAULT",
+                "converted_segment_count": 1, "protection": "NORMAL",
+            }],
+        }
+        self.assertEqual(validate_record(record), [])
+
 
 if __name__ == "__main__":
     unittest.main()

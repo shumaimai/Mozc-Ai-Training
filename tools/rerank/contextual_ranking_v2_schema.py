@@ -80,6 +80,10 @@ def validate_record(record: Any) -> list[str]:
         errors.append("eligibility_status_invalid")
     if "proper_noun" in record and not isinstance(record["proper_noun"], bool):
         errors.append("proper_noun_invalid")
+    if "sampling_identity" in record and (not isinstance(record["sampling_identity"], str) or len(record["sampling_identity"]) != 64):
+        errors.append("sampling_identity_invalid")
+    if "context_builder" in record and record["context_builder"] != "runtime_preceding_text_plus_conversion_top1-v1":
+        errors.append("context_builder_invalid")
     if "example_status" in record and record["example_status"] not in EXAMPLE_STATUSES:
         errors.append("example_status_invalid")
     if "example_reason" in record and (not isinstance(record["example_reason"], str) or not record["example_reason"]):

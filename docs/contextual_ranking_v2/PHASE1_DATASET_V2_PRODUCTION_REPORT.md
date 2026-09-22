@@ -2,6 +2,11 @@
 
 **Status:** complete — model training has not started.
 
+> **Superseded for training/evaluation by runtime-context parity Dataset v2.**
+> This immutable original is retained for provenance.  Use
+> [`PHASE1_CONTEXT_PARITY_REPORT.md`](PHASE1_CONTEXT_PARITY_REPORT.md) and
+> `data/public/contextual_ranking_v2_production_runtime_context/` for Phase 2.
+
 ## Frozen contract
 
 - Source: `wikimedia/wikipedia`, `20231101.ja`, train split, CC BY-SA 4.0.

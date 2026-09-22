@@ -37,16 +37,36 @@ class PairExample:
     group_id: str
 
 
+def parse_eligibility_statuses(value: str | None) -> set[str] | None:
+    """Parse an optional comma-separated eligibility allow-list.
+
+    An empty value preserves the historical behaviour (all records that have
+    gold in the N-best can contribute).  Production Dataset v2 training uses
+    ``NEURAL_ELIGIBLE`` explicitly, leaving protected and coverage-limited
+    records available for evaluation rather than silently training on them.
+    """
+    values = {part.strip() for part in (value or "").split(",") if part.strip()}
+    return values or None
+
+
 def expand_groups(
     rows: list[dict[str, Any]],
     *,
     max_neg: int = 15,
     require_gold_in_nbest: bool = False,
+    eligibility_statuses: set[str] | None = None,
 ) -> list[PairExample]:
     """One positive (gold) + hard negatives from Mozc N-best."""
     examples: list[PairExample] = []
     skipped = 0
+    skipped_eligibility = 0
     for i, row in enumerate(rows):
+        if (
+            eligibility_statuses is not None
+            and row.get("eligibility_status") not in eligibility_statuses
+        ):
+            skipped_eligibility += 1
+            continue
         if require_gold_in_nbest and not row.get("gold_in_nbest"):
             skipped += 1
             continue
@@ -84,6 +104,12 @@ def expand_groups(
             )
     if skipped:
         print(f"skipped_groups_not_in_nbest={skipped}", flush=True)
+    if skipped_eligibility:
+        print(
+            "skipped_groups_ineligible="
+            f"{skipped_eligibility} allowed={sorted(eligibility_statuses or ())}",
+            flush=True,
+        )
     return examples
 
 
@@ -105,6 +131,9 @@ def command_dry_run(args: argparse.Namespace) -> int:
         rows,
         max_neg=args.max_neg,
         require_gold_in_nbest=args.require_gold_in_nbest,
+        eligibility_statuses=parse_eligibility_statuses(
+            getattr(args, "eligibility_status", "")
+        ),
     )
     pos = sum(1 for p in pairs if p.label == 1)
     neg = len(pairs) - pos
@@ -202,12 +231,18 @@ def command_train(args: argparse.Namespace) -> int:
         train_rows,
         max_neg=args.max_neg,
         require_gold_in_nbest=args.require_gold_in_nbest,
+        eligibility_statuses=parse_eligibility_statuses(
+            getattr(args, "eligibility_status", "")
+        ),
     )
     eval_pairs = (
         expand_groups(
             eval_rows,
             max_neg=args.max_neg,
             require_gold_in_nbest=args.require_gold_in_nbest,
+            eligibility_statuses=parse_eligibility_statuses(
+                getattr(args, "eligibility_status", "")
+            ),
         )
         if eval_rows
         else []
@@ -417,6 +452,7 @@ def command_train(args: argparse.Namespace) -> int:
         "max_neg": args.max_neg,
         "fp16": use_amp,
         "require_gold_in_nbest": args.require_gold_in_nbest,
+        "eligibility_status": getattr(args, "eligibility_status", ""),
         "device": device,
         "vram_peak": _vram_mb(),
         "elapsed_s": round(time.perf_counter() - t0, 1),
@@ -441,6 +477,11 @@ def main(argv: list[str] | None = None) -> int:
     dry.add_argument("--train", default="data/rerank_v2/train.jsonl")
     dry.add_argument("--model", default="cl-nagoya/ruri-v3-pt-70m")
     dry.add_argument("--max-neg", type=int, default=15)
+    dry.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
     dry.add_argument("--require-gold-in-nbest", action="store_true", default=True)
     dry.add_argument("--allow-gold-outside-nbest", action="store_true")
     dry.add_argument("--out", default="artifacts/rerank/dry_run.json")
@@ -466,6 +507,11 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--batch-size", type=int, default=512)
     tr.add_argument("--max-len", type=int, default=128)
     tr.add_argument("--max-neg", type=int, default=15)
+    tr.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
     tr.add_argument("--lr", type=float, default=2e-5)
     tr.add_argument("--num-workers", type=int, default=4)
     tr.add_argument("--log-every", type=int, default=20)

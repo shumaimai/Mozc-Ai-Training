@@ -12,6 +12,12 @@ class ModalPrivacyTest(unittest.TestCase):
             datasets=True,
         )
 
+    def test_context_parity_dataset_is_allowed(self) -> None:
+        ensure_public_modal_paths(
+            "data/contextual_ranking_v2_production_runtime_context/dataset/train.jsonl.gz",
+            datasets=True,
+        )
+
     def test_nonstaged_dataset_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             ensure_public_modal_paths("data/private/train.jsonl", datasets=True)

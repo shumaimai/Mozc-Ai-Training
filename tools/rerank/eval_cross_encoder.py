@@ -27,7 +27,7 @@ from typing import Any
 
 from tools.dataset.jsonl import read_jsonl
 from tools.rerank.margin import metrics_at_tau
-from tools.rerank.train_cross_encoder import build_pair_text
+from tools.rerank.train_cross_encoder import build_pair_text, parse_eligibility_statuses
 
 
 def _parse_float_list(s: str) -> list[float]:
@@ -143,9 +143,18 @@ def score_texts(
     return scores
 
 
-def prepare_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def prepare_groups(
+    rows: list[dict[str, Any]],
+    *,
+    eligibility_statuses: set[str] | None = None,
+) -> list[dict[str, Any]]:
     groups: list[dict[str, Any]] = []
     for i, row in enumerate(rows):
+        if (
+            eligibility_statuses is not None
+            and row.get("eligibility_status") not in eligibility_statuses
+        ):
+            continue
         reading = row.get("reading") or ""
         gold = row.get("gold") or ""
         nbest = [c for c in (row.get("mozc_nbest") or []) if c]
@@ -175,6 +184,7 @@ def prepare_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "gold_in_nbest": bool(gold in seen) if gold else False,
                 "source": row.get("source") or "",
                 "category": row.get("category") or "",
+                "eligibility_status": row.get("eligibility_status") or "",
             }
         )
     return groups
@@ -394,6 +404,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--latency-groups", type=int, default=100)
     p.add_argument("--limit", type=int, default=0, help="optional group cap")
     p.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
+    p.add_argument(
         "--tau",
         type=float,
         default=0.0,
@@ -429,14 +444,19 @@ def main(argv: list[str] | None = None) -> int:
         print("device=cpu (latency path)", flush=True)
 
     rows = list(read_jsonl(Path(args.data)))
-    groups = prepare_groups(rows)
+    eligibility_statuses = parse_eligibility_statuses(args.eligibility_status)
+    groups = prepare_groups(rows, eligibility_statuses=eligibility_statuses)
     groups = cap_groups(groups, int(args.cand_cap))
     if args.limit and args.limit > 0:
         groups = groups[: args.limit]
     if args.latency_only:
         groups = groups[: max(1, args.latency_groups)]
 
-    print(f"groups={len(groups)} loading {args.ckpt}", flush=True)
+    print(
+        f"groups={len(groups)} eligibility_status="
+        f"{sorted(eligibility_statuses or ()) or ['ALL']} loading {args.ckpt}",
+        flush=True,
+    )
     tokenizer, model, base, use_amp = load_model(
         Path(args.ckpt), args.device, args.fp16
     )
