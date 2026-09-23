@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <string_view>
 
@@ -81,6 +82,25 @@ bool EnvTruthy(const char* name, bool default_on) {
     return false;
   }
   return true;
+}
+
+// Guard mode state for margin_policy.json ("guard_mode" key).  Written once
+// at RerankRewriter startup via SetPolicyGuardMode(); read on every guard
+// decision, hence the mutex.
+std::mutex g_policy_guard_mode_mutex;
+std::string g_policy_guard_mode;
+
+std::string EnvGuardMode() {
+  const char* value = std::getenv("MOZC_RERANK_GUARD_MODE");
+  if (value == nullptr || value[0] == '\0') {
+    return std::string();
+  }
+  return std::string(value);
+}
+
+std::string PolicyGuardMode() {
+  std::lock_guard<std::mutex> lock(g_policy_guard_mode_mutex);
+  return g_policy_guard_mode;
 }
 
 bool IsKyujitaiChar(char32_t c) {
@@ -191,12 +211,43 @@ bool IsEligibleReading(std::string_view reading) {
 
 bool GuardsEnabled() { return EnvTruthy("MOZC_RERANK_GUARD", true); }
 
+void SetPolicyGuardMode(std::string_view mode) {
+  std::lock_guard<std::mutex> lock(g_policy_guard_mode_mutex);
+  g_policy_guard_mode = std::string(mode);
+}
+
+namespace {
+
+// Python usage_guard.guard_mode() lowercases before comparing; mirror that so
+// env values are case-insensitive in both implementations.
+std::string NormalizeMode(std::string v) {
+  for (char& c : v) {
+    if (c >= 'A' && c <= 'Z') {
+      c += 'a' - 'A';
+    }
+  }
+  return v;
+}
+
+}  // namespace
+
 bool StrictEligibleGuardEnabled() {
-  const char* value = std::getenv("MOZC_RERANK_GUARD_MODE");
-  // Existing installations remain strict.  The personalized model explicitly
-  // opts into safety mode, which keeps short/context/junk guards but removes
-  // the coarse static reading allowlist.
-  return value == nullptr || std::strcmp(value, "safety") != 0;
+  // Precedence: explicit MOZC_RERANK_GUARD_MODE env value > policy override
+  // (margin_policy.json "guard_mode", set via SetPolicyGuardMode) > built-in
+  // default (safety).  Matches tools/rerank/usage_guard.py: any value other
+  // than "safety" is strict; empty/unset falls through to the next layer.
+  // The Phase 2 contextual model ships in safety mode, which keeps the
+  // short/context/junk guards but drops the coarse static reading allowlist.
+  // mozc_server must be restarted (or the user logged off/on) after changing
+  // either the env value or the policy file.
+  std::string mode = NormalizeMode(EnvGuardMode());
+  if (mode.empty()) {
+    mode = NormalizeMode(PolicyGuardMode());
+  }
+  if (mode.empty()) {
+    mode = "safety";  // built-in default
+  }
+  return mode != "safety";
 }
 
 std::string RerankSkipReason(std::string_view reading,

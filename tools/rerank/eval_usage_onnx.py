@@ -32,7 +32,7 @@ def _pre_skip(policy: str, reading: str, context: str) -> str | None:
     if context_empty_or_symbol(context):
         return "context_empty_or_symbol"
     if policy == "strict":
-        return skip_reason(reading, context, enabled=True)
+        return skip_reason(reading, context, enabled=True, mode="strict")
     return None
 
 
