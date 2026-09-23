@@ -1,0 +1,1 @@
+{"alignment_failures": 58459, "alignment_successes": 964549, "docs_per_sec": 0.11037772489056896, "documents": 1200, "elapsed_seconds": 10871.758782759001, "query_latency_ms": {"p50": 31.61069149996365, "p95": 242.90165914858335}, "raw_prefix_events": 1023008, "rows_per_sec": 88.72060347122783, "selected_events": 59537, "top_k": 1, "workers": 8}

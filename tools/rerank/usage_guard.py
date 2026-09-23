@@ -44,8 +44,14 @@ def guards_enabled() -> bool:
 
 
 def guard_mode() -> str:
-    """Return strict (legacy allowlist) or safety (general personalized model)."""
-    value = (os.environ.get("MOZC_RERANK_GUARD_MODE") or GUARD_MODE_STRICT).strip().lower()
+    """Return strict (legacy allowlist) or safety (general personalized model).
+
+    Precedence: explicit MOZC_RERANK_GUARD_MODE env value (any value other
+    than "safety" is strict) > built-in default (safety).  The C++ runtime
+    additionally reads margin_policy.json "guard_mode" between the env value
+    and the default; see mozc_compat/rerank_guard.cc StrictEligibleGuardEnabled.
+    """
+    value = (os.environ.get("MOZC_RERANK_GUARD_MODE") or GUARD_MODE_SAFETY).strip().lower()
     return GUARD_MODE_SAFETY if value == GUARD_MODE_SAFETY else GUARD_MODE_STRICT
 
 

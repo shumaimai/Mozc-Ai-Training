@@ -1,0 +1,32 @@
+diff --git a/src/converter/converter_main.cc b/src/converter/converter_main.cc
+--- a/src/converter/converter_main.cc
++++ b/src/converter/converter_main.cc
+@@ -167,6 +167,18 @@ std::string CandidateAttributesToString(uint32_t attrs) {
+   return absl::StrJoin(v, " | ");
+ }
++
++std::string CandidateCategoryToString(Candidate::Category category) {
++  switch (category) {
++    case Candidate::DEFAULT_CATEGORY:
++      return "DEFAULT";
++    case Candidate::SYMBOL:
++      return "SYMBOL";
++    case Candidate::OTHER:
++      return "OTHER";
++  }
++  return "OTHER";
++}
++
+ std::string NumberStyleToString(NumberUtil::NumberString::Style style) {
+@@ -217,6 +229,12 @@ void PrintCandidate(const Segment& parent, size_t candidates_size, int num,
+   lines.push_back(absl::StrFormat("cost: %d  scost: %d  wcost: %d", cand.cost,
+                                   cand.structure_cost, cand.wcost));
++  lines.push_back(absl::StrFormat("wcost: %d", cand.wcost));
+   lines.push_back("lid: " + IdToString(cand.lid));
+   lines.push_back("rid: " + IdToString(cand.rid));
+   lines.push_back("attr: " + CandidateAttributesToString(cand.attributes));
++  lines.push_back(absl::StrFormat("attributes: %u", cand.attributes));
++  lines.push_back("category: " + CandidateCategoryToString(cand.category));
++  lines.push_back(absl::StrFormat("converted_segment_count: %d",
++                                  cand.effective_converted_segment_count()));
+   lines.push_back("num_style: " + NumberStyleToString(cand.style));

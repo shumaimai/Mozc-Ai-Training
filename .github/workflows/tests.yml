@@ -34,6 +34,9 @@ jobs:
       - name: Reranker tests
         run: python -m unittest discover -s tools/rerank -p "test_*.py" -v
 
+      - name: Phase 0 contract audit tests
+        run: python -m unittest tools.rerank.test_phase0_contract -v
+
       - name: Cloud privacy audit
         run: |
           python - <<'PY'

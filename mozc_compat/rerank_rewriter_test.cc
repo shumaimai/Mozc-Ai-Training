@@ -9,8 +9,22 @@
 #include "request/conversion_request.h"
 #include "testing/gunit.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <string>
+#include <sys/stat.h>
+
 namespace mozc {
 namespace {
+
+void SetEnvValue(const char* name, const char* value) {
+#ifdef _WIN32
+  _putenv_s(name, value);
+#else
+  setenv(name, value, 1);
+#endif
+}
 
 ConversionRequest MakeConversionRequest() {
   ConversionRequest::Options options = {
@@ -203,6 +217,8 @@ TEST(RerankRewriterTest, GuardSkipsShortReadingWithoutHook) {
 }
 
 TEST(RerankRewriterTest, GuardSkipReasons) {
+  // Legacy strict allowlist, selected by an explicit env value.
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "strict");
   EXPECT_EQ(rerank::RerankSkipReason("い", "文化"), "reading_too_short");
   EXPECT_EQ(rerank::RerankSkipReason("ねん", "5"), "reading_too_short");
   EXPECT_EQ(rerank::RerankSkipReason("きしゃ", ""), "context_empty_or_symbol");
@@ -213,27 +229,113 @@ TEST(RerankRewriterTest, GuardSkipReasons) {
   EXPECT_EQ(rerank::RerankSkipReason("きょうかい", "全国商業高等学校"),
             "reading_not_eligible");
   EXPECT_EQ(rerank::RerankSkipReason("きしゃ", "駅に"), "");
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "");
   EXPECT_TRUE(rerank::IsJunkSurface("ヨセン"));
   EXPECT_TRUE(rerank::IsJunkSurface("實際に"));
   EXPECT_FALSE(rerank::IsJunkSurface("予選"));
 }
 
+TEST(RerankRewriterTest, RuntimeContextUsesMozcTop1ForEarlierSegments) {
+  EXPECT_EQ(rerank::BuildRuntimeContext("前文。", {"駅に", "電車で"}),
+            "駅に電車で");
+  EXPECT_EQ(rerank::BuildRuntimeContext("新聞の", {}), "新聞の");
+}
+
+TEST(RerankRewriterTest, GuardModePrecedence) {
+  // Built-in default (no env, no policy override): safety — the strict
+  // reading allowlist must NOT fire.
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "");
+  rerank::SetPolicyGuardMode("");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"), "");
+  EXPECT_EQ(rerank::RerankSkipReason("い", "文化"), "reading_too_short");
+
+  // Policy strict (margin_policy.json "guard_mode") with empty env fires.
+  rerank::SetPolicyGuardMode("strict");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"),
+            "reading_not_eligible");
+
+  // Explicit env value wins over the policy override.
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "safety");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"), "");
+  // Any non-safety env value means strict, matching usage_guard.py.
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "banana");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"),
+            "reading_not_eligible");
+
+  // Deleting the env value falls back to the policy layer.
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"),
+            "reading_not_eligible");
+  rerank::SetPolicyGuardMode("safety");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"), "");
+
+  // Removing the policy override restores the built-in safety default.
+  rerank::SetPolicyGuardMode("");
+  EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"), "");
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "");
+}
+
 TEST(RerankRewriterTest, SafetyGuardModeRelaxesOnlyReadingAllowlist) {
-#ifdef _WIN32
-  _putenv_s("MOZC_RERANK_GUARD_MODE", "safety");
-#else
-  setenv("MOZC_RERANK_GUARD_MODE", "safety", 1);
-#endif
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "safety");
   EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "文化"), "");
   EXPECT_EQ(rerank::RerankSkipReason("い", "文化"), "reading_too_short");
   EXPECT_EQ(rerank::RerankSkipReason("いいんちょう", "1"),
             "context_empty_or_symbol");
-#ifdef _WIN32
-  _putenv_s("MOZC_RERANK_GUARD_MODE", "");
-#else
-  unsetenv("MOZC_RERANK_GUARD_MODE");
-#endif
+  SetEnvValue("MOZC_RERANK_GUARD_MODE", "");
 }
+
+#ifndef _WIN32
+TEST(RerankRewriterTest, MultiSegmentLogUsesScoredTargetSegment) {
+  const char *log_path = "/tmp/mozc_phase0_segment_log.jsonl";
+  const char *hook_path = "/tmp/mozc_phase0_segment_hook.sh";
+  std::remove(log_path);
+  {
+    std::ofstream hook(hook_path);
+    hook << "#!/bin/sh\n"
+         << "printf '%s' '{\"ranked_surfaces\":[\"汽車\",\"記者\"],"
+            "\"rerank_top1\":\"汽車\",\"final_top1\":\"汽車\","
+            "\"overwritten\":true}' > \"$2\"\n";
+  }
+  chmod(hook_path, 0700);
+  setenv("MOZC_RERANK_ENABLED", "1", 1);
+  setenv("MOZC_RERANK_LOG", log_path, 1);
+  setenv("MOZC_RERANK_HOOK_CMD",
+         "sh -c 'printf \\\"{\\\\\\\"ranked_surfaces\\\\\\\":[\\\\\\\"汽車\\\\\\\",\\\\\\\"記者\\\\\\\"],\\\\\\\"rerank_top1\\\\\\\":\\\\\\\"汽車\\\\\\\",\\\\\\\"final_top1\\\\\\\":\\\\\\\"汽車\\\\\\\",\\\\\\\"overwritten\\\\\\\":true}\\\" > \\\"$1\\\"' _",
+         1);
+  setenv("MOZC_RERANK_HOOK_CMD", hook_path, 1);
+  unsetenv("MOZC_RERANK_DAEMON_ADDR");
+
+  RerankRewriter rewriter;
+  const ConversionRequest req = MakeConversionRequest();
+  Segments segments;
+  Segment *first = segments.add_segment();
+  first->set_key("えき");
+  first->add_candidate()->value = "駅";
+  Segment *target = segments.add_segment();
+  target->set_key("きしゃ");
+  target->add_candidate()->value = "記者";
+  target->add_candidate()->value = "汽車";
+
+  EXPECT_TRUE(rewriter.Rewrite(req, &segments));
+  EXPECT_EQ(segments.conversion_segment(1).candidate(0).value, "汽車");
+  rewriter.Finish(req, segments);
+
+  std::ifstream in(log_path);
+  std::string line;
+  std::getline(in, line);
+  EXPECT_NE(line.find("\"target_segment_index\":1"), std::string::npos);
+  EXPECT_NE(line.find("\"mozc_top1\":\"記者\""), std::string::npos);
+  EXPECT_NE(line.find("\"model_top1\":\"汽車\""), std::string::npos);
+  EXPECT_NE(line.find("\"committed_candidate\":\"汽車\""), std::string::npos);
+  EXPECT_NE(line.find("\"candidate_metadata\":[{"), std::string::npos);
+  EXPECT_NE(line.find("\"surface\":\"記者\""), std::string::npos);
+  EXPECT_NE(line.find("\"protection\":\"NORMAL\""), std::string::npos);
+  std::remove(log_path);
+  std::remove(hook_path);
+  unsetenv("MOZC_RERANK_LOG");
+  unsetenv("MOZC_RERANK_HOOK_CMD");
+}
+#endif
 
 }  // namespace
 }  // namespace mozc

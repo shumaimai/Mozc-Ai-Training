@@ -10,11 +10,14 @@ from pathlib import Path
 
 from tools.rerank.phase3_hook import rerank_one
 from tools.rerank.usage_guard import (
+    GUARD_MODE_SAFETY,
+    GUARD_MODE_STRICT,
     REASON_CONTEXT_EMPTY_OR_SYMBOL,
     REASON_JUNK_CANDIDATE,
     REASON_READING_NOT_ELIGIBLE,
     REASON_READING_TOO_SHORT,
     context_empty_or_symbol,
+    guard_mode,
     is_junk_surface,
     skip_reason,
 )
@@ -166,9 +169,14 @@ class UsageGuardCppParityTest(unittest.TestCase):
             return
         cls.cli = exe
 
-    def _cli(self, op: str, text: str, reading: str = "") -> str:
+    def _cli(self, op: str, text: str, reading: str = "", mode: str | None = "strict") -> str:
         if self.cli is None:
             self.skipTest("g++ not available")
+        env = dict(os.environ)
+        if mode is None:
+            env.pop("MOZC_RERANK_GUARD_MODE", None)
+        else:
+            env["MOZC_RERANK_GUARD_MODE"] = mode
         cmd = [str(self.cli), "--op", op]
         if reading:
             cmd.extend(["--reading", reading])
@@ -177,7 +185,7 @@ class UsageGuardCppParityTest(unittest.TestCase):
             input=text.encode("utf-8"),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env={**os.environ, "MOZC_RERANK_GUARD_MODE": "strict"},
+            env=env,
             check=False,
         )
         self.assertEqual(p.returncode, 0, p.stderr.decode("utf-8", "replace"))
@@ -196,6 +204,50 @@ class UsageGuardCppParityTest(unittest.TestCase):
                 py = skip_reason(reading, ctx, mode="strict") or ""
                 self.assertEqual(py, expect)
                 self.assertEqual(self._cli("skip", ctx, reading=reading), expect)
+
+    def test_skip_parity_default_safety(self) -> None:
+        """With no env and no policy override, both sides default to safety."""
+        cases = [
+            ("い", "文化", REASON_READING_TOO_SHORT),
+            ("きしゃ", "", REASON_CONTEXT_EMPTY_OR_SYMBOL),
+            ("きしゃ", "1", REASON_CONTEXT_EMPTY_OR_SYMBOL),
+            ("いいんちょう", "文化", ""),
+            ("きしゃ", "駅に", ""),
+        ]
+        for reading, ctx, expect in cases:
+            with self.subTest(reading=reading, ctx=ctx):
+                py = skip_reason(reading, ctx) or ""
+                self.assertEqual(py, expect)
+                self.assertEqual(
+                    self._cli("skip", ctx, reading=reading, mode=None), expect
+                )
+
+    def test_guard_mode_default_and_override(self) -> None:
+        old = os.environ.pop("MOZC_RERANK_GUARD_MODE", None)
+        try:
+            # No env, no policy: built-in default is safety.
+            self.assertEqual(guard_mode(), GUARD_MODE_SAFETY)
+            self.assertIsNone(skip_reason("いいんちょう", "文化"))
+            # Explicit env restores the legacy strict allowlist.
+            os.environ["MOZC_RERANK_GUARD_MODE"] = "strict"
+            self.assertEqual(guard_mode(), GUARD_MODE_STRICT)
+            self.assertEqual(
+                skip_reason("いいんちょう", "文化"), REASON_READING_NOT_ELIGIBLE
+            )
+            # Explicit safety wins.
+            os.environ["MOZC_RERANK_GUARD_MODE"] = "safety"
+            self.assertIsNone(skip_reason("いいんちょう", "文化"))
+            # Any non-safety value means strict, matching the C++ runtime.
+            os.environ["MOZC_RERANK_GUARD_MODE"] = "banana"
+            self.assertEqual(
+                skip_reason("いいんちょう", "文化"), REASON_READING_NOT_ELIGIBLE
+            )
+            # Deleting the env value falls back to the built-in default.
+            del os.environ["MOZC_RERANK_GUARD_MODE"]
+            self.assertIsNone(skip_reason("いいんちょう", "文化"))
+        finally:
+            if old is not None:
+                os.environ["MOZC_RERANK_GUARD_MODE"] = old
 
     def test_junk_parity(self) -> None:
         for surface, expect in [("ヨセン", True), ("實際に", True), ("予選", False)]:

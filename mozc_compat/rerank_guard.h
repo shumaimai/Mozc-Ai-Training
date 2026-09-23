@@ -16,6 +16,12 @@ std::string RerankSkipReason(std::string_view reading,
                              std::string_view context_prev);
 
 bool GuardsEnabled();
+
+// Overrides the guard mode that applies when MOZC_RERANK_GUARD_MODE is not
+// set in the environment.  Empty string clears the override.  Precedence:
+// explicit env value > policy override (margin_policy.json "guard_mode",
+// set by RerankRewriter::LoadPolicyFile) > built-in default (safety).
+void SetPolicyGuardMode(std::string_view mode);
 bool StrictEligibleGuardEnabled();
 bool IsEligibleReading(std::string_view reading);
 bool ContextEmptyOrSymbol(std::string_view context_prev);

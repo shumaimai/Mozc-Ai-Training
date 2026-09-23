@@ -1,0 +1,17 @@
+{
+  "phase": "0-B",
+  "status": "fixed_and_test_added",
+  "v1_observed": {
+    "rewrite_target": "conversion_segments_size - 1",
+    "finish_read": "conversion_segment(0)",
+    "impact": "multi-segment conversions could log the first segment instead of the scored last segment"
+  },
+  "v2_changes": {
+    "conversion_id": "per-rewriter conversion sequence (rerank-<counter>)",
+    "target_segment_index": "captured at Rewrite and used by Finish",
+    "schema": ["conversion_id", "target_segment_index", "reading", "mozc_top1", "model_top1", "final_top1", "committed_candidate", "overwritten", "tau", "source"],
+    "raw_context_default": "omitted"
+  },
+  "fixture": "mozc_compat/rerank_rewriter_test.cc::MultiSegmentLogUsesScoredTargetSegment",
+  "test_scope": "two conversion segments; hook promotes candidate only in segment 1; Finish must log committed candidate from segment 1"
+}

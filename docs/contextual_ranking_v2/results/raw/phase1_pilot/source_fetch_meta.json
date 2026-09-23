@@ -1,0 +1,9 @@
+{
+  "source": "wikimedia/wikipedia",
+  "config": "20231101.ja",
+  "split": "train",
+  "license": "CC BY-SA 4.0",
+  "retrieved_at": "2026-09-21T12:49:31.075245+00:00",
+  "documents": 100,
+  "selection": "deterministic streaming prefix filtered by text length and sentence count"
+}

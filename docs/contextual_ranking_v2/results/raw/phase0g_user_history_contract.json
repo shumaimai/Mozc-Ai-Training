@@ -1,0 +1,28 @@
+{
+  "phase": "0-G",
+  "status": "defined_against_pinned_upstream_revision",
+  "pinned_mozc_revision": "13c98988247aa711d99db9e348ec2a597d14b5cd",
+  "candidate_metadata_schema": {
+    "surface": "string",
+    "rank": "int",
+    "cost": "int",
+    "wcost": "int",
+    "lid": "int",
+    "rid": "int",
+    "attributes": "uint32 bitset",
+    "category": "DEFAULT|SYMBOL|OTHER",
+    "converted_segment_count": "int",
+    "protection": "HARD_PROTECT|DELTA_ONLY|NORMAL"
+  },
+  "classification": {
+    "USER_SEGMENT_HISTORY_REWRITER": {"bit": 131072, "policy": "HARD_PROTECT", "reason": "explicit user segment history has higher authority than AI"},
+    "RERANKED": {"bit": 2, "policy": "HARD_PROTECT", "reason": "user-selected committed candidate marker"},
+    "USER_DICTIONARY": {"bit": 512, "policy": "DELTA_ONLY", "reason": "retain candidate and metadata; AI may correct rank only when no hard-protected top1"},
+    "NUMBER": {"bit": 8388608, "policy": "HARD_PROTECT", "reason": "numeric semantics are deterministic/safety-sensitive"},
+    "punctuation_or_SYMBOL": {"policy": "HARD_PROTECT", "reason": "symbol/punctuation must not be neural-overwritten"},
+    "CONTEXT_SENSITIVE": {"bit": 16, "policy": "DELTA_ONLY", "reason": "context-sensitive candidates are the intended correction target"},
+    "NO_MODIFICATION_or_NO_DELETABLE": {"bits": [65536, 524288], "policy": "HARD_PROTECT", "reason": "upstream explicit safety constraints"}
+  },
+  "runtime_implementation": "Mozc-Ai/mozc_compat/rerank_rewriter.cc IsAiOverwriteProtected",
+  "phase1_dataset_requirement": "store attributes/category/cost/lid/rid and derived protection; never store surface-only candidates"
+}

@@ -1,0 +1,309 @@
+{
+  "phase": "1-production-parity-pilot",
+  "experiment": "split-ablation",
+  "status": "complete",
+  "model_training_started": false,
+  "documents": 100,
+  "workers": 8,
+  "split_mode": "C",
+  "modes": {
+    "full_sentence_split_A": {
+      "examples": 4924,
+      "documents": 100,
+      "workers": 8,
+      "rows_per_sec": 302.79561043691973,
+      "docs_per_sec": 6.149382827719735,
+      "end_to_end_accuracy": {
+        "top1": 0.7879772542648253,
+        "top5": 0.8643379366368806
+      },
+      "conditional_accuracy": {
+        "top1": 0.8935974205435283,
+        "top5": 0.9801934592353754,
+        "top10": 0.9917088899124827,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.7879772542648253,
+        "top5": 0.8643379366368806,
+        "top10": 0.8744922826969943,
+        "top30": 0.8818034118602762
+      },
+      "candidate_coverage_by_status": {
+        "ALL": {
+          "top1": 0.7879772542648253,
+          "top5": 0.8643379366368806,
+          "top10": 0.8744922826969943,
+          "top30": 0.8818034118602762
+        },
+        "NEURAL_ELIGIBLE": {
+          "top1": 0.8225913621262458,
+          "top5": 0.9046511627906977,
+          "top10": 0.9122923588039867,
+          "top30": 0.9176079734219269
+        },
+        "PROTECTED_EVAL_ONLY": {
+          "top1": 0.7335423197492164,
+          "top5": 0.8009404388714734,
+          "top10": 0.8150470219435737,
+          "top30": 0.8254963427377221
+        }
+      },
+      "coverage_failure_rate": 0.11819658813972381,
+      "status_counts": {
+        "PROTECTED_EVAL_ONLY": 1580,
+        "NEURAL_ELIGIBLE": 2762,
+        "COVERAGE_FAILURE": 582
+      },
+      "reason_counts": {
+        "hard_protected_attribute": 4,
+        "latin_mixed": 72,
+        "normal_contextual": 2760,
+        "normal_japanese_content": 183,
+        "number": 60,
+        "proper_noun": 434,
+        "punctuation": 1030,
+        "punctuation_or_symbol": 298,
+        "short_function_word": 83
+      },
+      "reason_ratios": {
+        "hard_protected_attribute": 0.0008123476848090983,
+        "latin_mixed": 0.01462225832656377,
+        "normal_contextual": 0.5605199025182778,
+        "normal_japanese_content": 0.03716490658001625,
+        "number": 0.012185215272136474,
+        "proper_noun": 0.08813972380178717,
+        "punctuation": 0.20917952883834282,
+        "punctuation_or_symbol": 0.060519902518277824,
+        "short_function_word": 0.016856214459788788
+      },
+      "alignment_failures": 421,
+      "alignment_success_rate": 0.9212347988774555,
+      "alignment_failure_reasons": {
+        "ALIGNMENT_FAILURE": 421
+      },
+      "alignment_failure_details": {
+        "boundary_split_morpheme": 417,
+        "reading_stream_mismatch": 4,
+        "other": 0
+      },
+      "per_document_examples": {
+        "min": 25,
+        "median": 50.0,
+        "max": 50,
+        "mean": 49.24
+      },
+      "context_length": {
+        "min": 0,
+        "median": 21.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 1,
+        "median": 12.0,
+        "max": 30
+      }
+    },
+    "full_sentence_split_B": {
+      "examples": 4924,
+      "documents": 100,
+      "workers": 8,
+      "rows_per_sec": 280.6152881162338,
+      "docs_per_sec": 5.698929490581515,
+      "end_to_end_accuracy": {
+        "top1": 0.7893988627132412,
+        "top5": 0.8645410235580828
+      },
+      "conditional_accuracy": {
+        "top1": 0.8958285319197972,
+        "top5": 0.9811016363217331,
+        "top10": 0.9921640931090113,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.7893988627132412,
+        "top5": 0.8645410235580828,
+        "top10": 0.874289195775792,
+        "top30": 0.8811941510966693
+      },
+      "candidate_coverage_by_status": {
+        "ALL": {
+          "top1": 0.7893988627132412,
+          "top5": 0.8645410235580828,
+          "top10": 0.874289195775792,
+          "top30": 0.8811941510966693
+        },
+        "NEURAL_ELIGIBLE": {
+          "top1": 0.8266622560370492,
+          "top5": 0.9067151835924578,
+          "top10": 0.9139927224611313,
+          "top30": 0.9186238835593781
+        },
+        "PROTECTED_EVAL_ONLY": {
+          "top1": 0.7301420305102577,
+          "top5": 0.7974750131509731,
+          "top10": 0.8111520252498685,
+          "top30": 0.8216728037874803
+        }
+      },
+      "coverage_failure_rate": 0.11880584890333062,
+      "status_counts": {
+        "PROTECTED_EVAL_ONLY": 1562,
+        "NEURAL_ELIGIBLE": 2777,
+        "COVERAGE_FAILURE": 585
+      },
+      "reason_counts": {
+        "hard_protected_attribute": 2,
+        "latin_mixed": 70,
+        "normal_contextual": 2775,
+        "normal_japanese_content": 183,
+        "number": 62,
+        "proper_noun": 408,
+        "punctuation": 1039,
+        "punctuation_or_symbol": 302,
+        "short_function_word": 83
+      },
+      "reason_ratios": {
+        "hard_protected_attribute": 0.00040617384240454913,
+        "latin_mixed": 0.01421608448415922,
+        "normal_contextual": 0.5635662063363119,
+        "normal_japanese_content": 0.03716490658001625,
+        "number": 0.012591389114541024,
+        "proper_noun": 0.08285946385052803,
+        "punctuation": 0.2110073111291633,
+        "punctuation_or_symbol": 0.06133225020308692,
+        "short_function_word": 0.016856214459788788
+      },
+      "alignment_failures": 472,
+      "alignment_success_rate": 0.9125277983691623,
+      "alignment_failure_reasons": {
+        "ALIGNMENT_FAILURE": 472
+      },
+      "alignment_failure_details": {
+        "boundary_split_morpheme": 468,
+        "reading_stream_mismatch": 4,
+        "other": 0
+      },
+      "per_document_examples": {
+        "min": 25,
+        "median": 50.0,
+        "max": 50,
+        "mean": 49.24
+      },
+      "context_length": {
+        "min": 0,
+        "median": 21.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 1,
+        "median": 12.0,
+        "max": 30
+      }
+    },
+    "full_sentence_split_C": {
+      "examples": 4924,
+      "documents": 100,
+      "workers": 8,
+      "rows_per_sec": 289.3818702311265,
+      "docs_per_sec": 5.876967307699564,
+      "end_to_end_accuracy": {
+        "top1": 0.7875710804224207,
+        "top5": 0.8631194151096669
+      },
+      "conditional_accuracy": {
+        "top1": 0.8945790080738177,
+        "top5": 0.9803921568627451,
+        "top10": 0.9919261822376009,
+        "top30": 1.0
+      },
+      "candidate_coverage": {
+        "top1": 0.7875710804224207,
+        "top5": 0.8631194151096669,
+        "top10": 0.8732737611697806,
+        "top30": 0.8803818034118602
+      },
+      "candidate_coverage_by_status": {
+        "ALL": {
+          "top1": 0.7875710804224207,
+          "top5": 0.8631194151096669,
+          "top10": 0.8732737611697806,
+          "top30": 0.8803818034118602
+        },
+        "NEURAL_ELIGIBLE": {
+          "top1": 0.8269167489305692,
+          "top5": 0.9068772622573215,
+          "top10": 0.914116485686081,
+          "top30": 0.9187232642316552
+        },
+        "PROTECTED_EVAL_ONLY": {
+          "top1": 0.7241379310344828,
+          "top5": 0.7925729442970822,
+          "top10": 0.8074270557029177,
+          "top30": 0.8185676392572945
+        }
+      },
+      "coverage_failure_rate": 0.11961819658813973,
+      "status_counts": {
+        "PROTECTED_EVAL_ONLY": 1543,
+        "NEURAL_ELIGIBLE": 2792,
+        "COVERAGE_FAILURE": 589
+      },
+      "reason_counts": {
+        "hard_protected_attribute": 2,
+        "latin_mixed": 71,
+        "normal_contextual": 2789,
+        "normal_japanese_content": 184,
+        "number": 64,
+        "proper_noun": 376,
+        "punctuation": 1049,
+        "punctuation_or_symbol": 305,
+        "short_function_word": 84
+      },
+      "reason_ratios": {
+        "hard_protected_attribute": 0.00040617384240454913,
+        "latin_mixed": 0.014419171405361494,
+        "normal_contextual": 0.5664094232331438,
+        "normal_japanese_content": 0.03736799350121852,
+        "number": 0.012997562956945572,
+        "proper_noun": 0.07636068237205523,
+        "punctuation": 0.21303818034118602,
+        "punctuation_or_symbol": 0.061941510966693744,
+        "short_function_word": 0.017059301380991064
+      },
+      "alignment_failures": 554,
+      "alignment_success_rate": 0.8988682000730194,
+      "alignment_failure_reasons": {
+        "ALIGNMENT_FAILURE": 554
+      },
+      "alignment_failure_details": {
+        "boundary_split_morpheme": 550,
+        "reading_stream_mismatch": 4,
+        "other": 0
+      },
+      "per_document_examples": {
+        "min": 25,
+        "median": 50.0,
+        "max": 50,
+        "mean": 49.24
+      },
+      "context_length": {
+        "min": 0,
+        "median": 22.0,
+        "max": 50
+      },
+      "candidate_count": {
+        "min": 1,
+        "median": 12.0,
+        "max": 30
+      }
+    }
+  },
+  "provenance": {
+    "source": "wikimedia/wikipedia supplied JSONL",
+    "converter": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main",
+    "mozc_cwd": "/tmp/mozc-phase0-build/src/bazel-bin/converter/converter_main.runfiles/_main",
+    "cpu_model": "Intel(R) Core(TM) i7-1060NG7 CPU @ 1.20GHz",
+    "logical_cpu_count": 8
+  }
+}

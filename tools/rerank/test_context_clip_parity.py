@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
 
-from tools.rerank.context_clip import clean_context, clip_context_prev, normalize_reading
+from tools.rerank.context_clip import clean_context, clip_context_prev, normalize_reading, runtime_context_prev
+
+RUNTIME_FIXTURE = Path(__file__).parents[2] / "tests/fixtures/contextual_ranking_v2/runtime_context_parity.jsonl"
 
 CASES = [
     "",
@@ -74,6 +77,17 @@ def main() -> int:
         print("FAIL clip", repr(py), repr(cpp))
     else:
         n_ok += 1
+    # Dataset rebuild, training/evaluation prompt assembly, and the C++
+    # RerankRewriter all consume this exact runtime-history fixture.
+    for line in RUNTIME_FIXTURE.read_text(encoding="utf-8").splitlines():
+        case = json.loads(line)
+        n += 1
+        py = runtime_context_prev(case["previous_committed_text"], case["conversion_prefix_top1"])
+        cpp = run_cli(cli, "runtime", "\n".join(case["conversion_prefix_top1"]), ["--preceding", case["previous_committed_text"]])
+        if py != case["expected_context_prev"] or cpp != case["expected_context_prev"]:
+            print("FAIL runtime", case["case_id"], repr(py), repr(cpp), repr(case["expected_context_prev"]))
+        else:
+            n_ok += 1
     print(f"parity {n_ok}/{n}")
     return 0 if n_ok == n else 1
 

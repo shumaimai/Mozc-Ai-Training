@@ -1,0 +1,302 @@
+{
+  "phase": "0-D-closure",
+  "status": "complete",
+  "fixture": {
+    "source": "/artifacts/track30m_ctx/onnx/parity_scores.json",
+    "groups": 80,
+    "scores": 1608,
+    "context": "fixed realistic Japanese preceding text for sequence-shape control",
+    "dataset_v2_generated": false
+  },
+  "same_container": true,
+  "model": "sbintuitions/modernbert-ja-30m",
+  "model_size_bytes": 147058612,
+  "results": [
+    {
+      "ort_version": "1.22.1",
+      "cpu_model": "unavailable_in_modal_proc",
+      "logical_cores": 24,
+      "configs": [
+        {
+          "candidate_count": 5,
+          "padding": "longest",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 29.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 40.90115300000008,
+            "p95_ms": 44.53154344999941,
+            "max_ms": 52.05432500000029,
+            "mean_ms": 39.083877312500135
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "fixed128",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 187.13035499999899,
+            "p95_ms": 204.68917944999933,
+            "max_ms": 218.98987200000164,
+            "mean_ms": 177.4578082499999
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "longest",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 30.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 103.79198950000301,
+            "p95_ms": 253.78708430000108,
+            "max_ms": 308.7420979999962,
+            "mean_ms": 129.82091977499977
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "fixed128",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 478.90288750000565,
+            "p95_ms": 1100.0546989500126,
+            "max_ms": 1105.5251570000023,
+            "mean_ms": 571.2110407375002
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "longest",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 29.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 17.99163949999638,
+            "p95_ms": 22.868567250000638,
+            "max_ms": 24.00177099998757,
+            "mean_ms": 17.819807949999777
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "fixed128",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 64.24016350000272,
+            "p95_ms": 69.91641855000239,
+            "max_ms": 79.16073299999482,
+            "mean_ms": 60.37258637499984
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "longest",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 30.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 41.950571499995704,
+            "p95_ms": 89.43852330000296,
+            "max_ms": 107.114131000003,
+            "mean_ms": 48.88896696250029
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "fixed128",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 149.19677999999692,
+            "p95_ms": 313.33813869999574,
+            "max_ms": 322.0785649999982,
+            "mean_ms": 166.49002126250014
+          }
+        }
+      ]
+    },
+    {
+      "ort_version": "1.30.0",
+      "cpu_model": "unavailable_in_modal_proc",
+      "logical_cores": 24,
+      "configs": [
+        {
+          "candidate_count": 5,
+          "padding": "longest",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 29.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 41.40783249999913,
+            "p95_ms": 45.13356899998371,
+            "max_ms": 52.20761399999674,
+            "mean_ms": 39.06873440000034
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "fixed128",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 186.1961535000063,
+            "p95_ms": 191.06489935001463,
+            "max_ms": 200.6313639999746,
+            "mean_ms": 174.27161946249896
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "longest",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 30.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 105.95646200000886,
+            "p95_ms": 256.8827279499928,
+            "max_ms": 319.921063999999,
+            "mean_ms": 132.4712419749993
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "fixed128",
+          "intra": 1,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 487.66311100000337,
+            "p95_ms": 1149.182421350018,
+            "max_ms": 1166.7905089999806,
+            "mean_ms": 586.8981111500002
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "longest",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 29.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 19.491219000002502,
+            "p95_ms": 21.061304350011767,
+            "max_ms": 25.856642999997348,
+            "mean_ms": 18.652396062499932
+          }
+        },
+        {
+          "candidate_count": 5,
+          "padding": "fixed128",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 65.88415649999035,
+            "p95_ms": 68.75990914999761,
+            "max_ms": 69.99922299999639,
+            "mean_ms": 62.139860675000946
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "longest",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 30.0,
+            "p95": 32.05,
+            "max": 37
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 52.52065200001255,
+            "p95_ms": 110.13869604997808,
+            "max_ms": 120.10826299999167,
+            "mean_ms": 57.12046362500054
+          }
+        },
+        {
+          "candidate_count": 30,
+          "padding": "fixed128",
+          "intra": 8,
+          "effective_seq": {
+            "p50": 128.0,
+            "p95": 128.0,
+            "max": 128
+          },
+          "latency": {
+            "n": 80,
+            "p50_ms": 142.8154345000081,
+            "p95_ms": 336.3490588000033,
+            "max_ms": 342.76428000001147,
+            "mean_ms": 173.55804676249952
+          }
+        }
+      ]
+    }
+  ]
+}

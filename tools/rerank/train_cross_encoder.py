@@ -20,14 +20,12 @@ from pathlib import Path
 from typing import Any
 
 from tools.dataset.jsonl import read_jsonl
+from tools.rerank.contextual_ranking_v2_contract import format_v2
 
 
 def build_pair_text(reading: str, context_prev: str, candidate: str) -> str:
-    parts = [f"読み: {reading}"]
-    if context_prev:
-        parts.append(f"文脈: {context_prev}")
-    parts.append(f"候補: {candidate}")
-    return " [SEP] ".join(parts)
+    """Canonical Dataset v2 prompt. Empty context stays an explicit field."""
+    return format_v2(reading, context_prev or "", candidate)
 
 
 @dataclass
@@ -37,28 +35,55 @@ class PairExample:
     group_id: str
 
 
+def parse_eligibility_statuses(value: str | None) -> set[str] | None:
+    """Parse an optional comma-separated eligibility allow-list.
+
+    An empty value preserves the historical behaviour (all records that have
+    gold in the N-best can contribute).  Production Dataset v2 training uses
+    ``NEURAL_ELIGIBLE`` explicitly, leaving protected and coverage-limited
+    records available for evaluation rather than silently training on them.
+    """
+    values = {part.strip() for part in (value or "").split(",") if part.strip()}
+    return values or None
+
+
 def expand_groups(
     rows: list[dict[str, Any]],
     *,
     max_neg: int = 15,
     require_gold_in_nbest: bool = False,
+    eligibility_statuses: set[str] | None = None,
 ) -> list[PairExample]:
     """One positive (gold) + hard negatives from Mozc N-best."""
     examples: list[PairExample] = []
     skipped = 0
+    skipped_eligibility = 0
     for i, row in enumerate(rows):
-        if require_gold_in_nbest and not row.get("gold_in_nbest"):
-            skipped += 1
+        if (
+            eligibility_statuses is not None
+            and row.get("eligibility_status") not in eligibility_statuses
+        ):
+            skipped_eligibility += 1
             continue
         reading = row.get("reading") or ""
         gold = row.get("gold") or ""
         ctx = row.get("context_prev") or ""
-        nbest = list(row.get("mozc_nbest") or [])
+        nbest = list(row.get("mozc_nbest") or row.get("candidates") or [])
+        # Dataset v2 stores rich candidate objects rather than the legacy
+        # `mozc_nbest` string list.  Honor an explicit annotation when
+        # present, otherwise derive coverage from the actual payload.
+        nbest_surfaces = [
+            c.get("surface") if isinstance(c, dict) else c for c in nbest
+        ]
+        gold_in_nbest = bool(row.get("gold_in_nbest", gold in nbest_surfaces))
+        if require_gold_in_nbest and not gold_in_nbest:
+            skipped += 1
+            continue
         if not reading or not gold:
             continue
         cands: list[str] = []
         seen: set[str] = set()
-        for c in [gold, *nbest]:
+        for c in [gold, *nbest_surfaces]:
             if not c or c in seen:
                 continue
             seen.add(c)
@@ -84,6 +109,12 @@ def expand_groups(
             )
     if skipped:
         print(f"skipped_groups_not_in_nbest={skipped}", flush=True)
+    if skipped_eligibility:
+        print(
+            "skipped_groups_ineligible="
+            f"{skipped_eligibility} allowed={sorted(eligibility_statuses or ())}",
+            flush=True,
+        )
     return examples
 
 
@@ -105,6 +136,9 @@ def command_dry_run(args: argparse.Namespace) -> int:
         rows,
         max_neg=args.max_neg,
         require_gold_in_nbest=args.require_gold_in_nbest,
+        eligibility_statuses=parse_eligibility_statuses(
+            getattr(args, "eligibility_status", "")
+        ),
     )
     pos = sum(1 for p in pairs if p.label == 1)
     neg = len(pairs) - pos
@@ -202,12 +236,18 @@ def command_train(args: argparse.Namespace) -> int:
         train_rows,
         max_neg=args.max_neg,
         require_gold_in_nbest=args.require_gold_in_nbest,
+        eligibility_statuses=parse_eligibility_statuses(
+            getattr(args, "eligibility_status", "")
+        ),
     )
     eval_pairs = (
         expand_groups(
             eval_rows,
             max_neg=args.max_neg,
             require_gold_in_nbest=args.require_gold_in_nbest,
+            eligibility_statuses=parse_eligibility_statuses(
+                getattr(args, "eligibility_status", "")
+            ),
         )
         if eval_rows
         else []
@@ -229,8 +269,12 @@ def command_train(args: argparse.Namespace) -> int:
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    resume_path = Path(getattr(args, "resume", "") or "")
-    if getattr(args, "auto_resume", False) and not resume_path:
+    # argparse default is "", and Path("") is a relative path that is not a
+    # file. Treat only a non-empty existing checkpoint as a resume source so
+    # auto_resume cannot load an empty path or silently continue a failed run.
+    raw_resume = str(getattr(args, "resume", "") or "").strip()
+    resume_path = Path(raw_resume) if raw_resume else None
+    if getattr(args, "auto_resume", False) and resume_path is None:
         cand = out_dir / "checkpoint_latest.pt"
         if cand.is_file():
             resume_path = cand
@@ -417,6 +461,7 @@ def command_train(args: argparse.Namespace) -> int:
         "max_neg": args.max_neg,
         "fp16": use_amp,
         "require_gold_in_nbest": args.require_gold_in_nbest,
+        "eligibility_status": getattr(args, "eligibility_status", ""),
         "device": device,
         "vram_peak": _vram_mb(),
         "elapsed_s": round(time.perf_counter() - t0, 1),
@@ -441,6 +486,11 @@ def main(argv: list[str] | None = None) -> int:
     dry.add_argument("--train", default="data/rerank_v2/train.jsonl")
     dry.add_argument("--model", default="cl-nagoya/ruri-v3-pt-70m")
     dry.add_argument("--max-neg", type=int, default=15)
+    dry.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
     dry.add_argument("--require-gold-in-nbest", action="store_true", default=True)
     dry.add_argument("--allow-gold-outside-nbest", action="store_true")
     dry.add_argument("--out", default="artifacts/rerank/dry_run.json")
@@ -466,6 +516,11 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--batch-size", type=int, default=512)
     tr.add_argument("--max-len", type=int, default=128)
     tr.add_argument("--max-neg", type=int, default=15)
+    tr.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
     tr.add_argument("--lr", type=float, default=2e-5)
     tr.add_argument("--num-workers", type=int, default=4)
     tr.add_argument("--log-every", type=int, default=20)

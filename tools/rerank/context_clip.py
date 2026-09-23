@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 
 _SENT_END = re.compile(r"[。！？!?]")
 _WIKI_EDIT = re.compile(r"\[\s*(?:edit|編集)\s*\]", re.IGNORECASE)
@@ -93,6 +94,23 @@ def clip_context_prev(full_text: str, token_char_start: int, max_chars: int = 50
         return ""
     left = full_text[:token_char_start]
     return clean_context(left, max_chars=max_chars)
+
+
+def runtime_context_prev(
+    preceding_text: str,
+    conversion_prefix_top1: Iterable[str],
+    max_chars: int = 50,
+) -> str:
+    """Build the exact RerankRewriter left context for its last segment.
+
+    ``preceding_text`` is already committed application/history text.  The
+    current conversion's earlier segments must use Mozc candidate rank 0 —
+    never their source surfaces — before the shared canonical cleaner runs.
+    """
+    return clean_context(
+        (preceding_text or "") + "".join(str(surface) for surface in conversion_prefix_top1),
+        max_chars=max_chars,
+    )
 
 
 def has_kanji(text: str) -> bool:

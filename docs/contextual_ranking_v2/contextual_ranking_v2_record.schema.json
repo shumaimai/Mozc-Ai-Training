@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contextual-ranking-v2-record-v1",
+  "title": "Mozc Contextual Ranking v2 record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "format_version", "source_id", "reading", "context_prev", "gold", "target_segment_index", "candidates"],
+  "properties": {
+    "schema_version": {"const": "contextual-ranking-v2-record-v1"},
+    "format_version": {"const": "contextual-ranking-v2-format-v1"},
+    "source_id": {"type": "string", "minLength": 1},
+    "reading": {"type": "string", "minLength": 1},
+    "context_prev": {"type": "string", "maxLength": 50},
+    "gold": {"type": "string", "minLength": 1},
+    "target_segment_index": {"type": "integer", "minimum": 0},
+    "example_status": {"enum": ["NEURAL_ELIGIBLE", "PROTECTED_EVAL_ONLY", "COVERAGE_FAILURE"]},
+    "example_reason": {"type": "string", "minLength": 1},
+    "eligibility_status": {"enum": ["NEURAL_ELIGIBLE", "PROTECTED_EVAL_ONLY", "COVERAGE_LIMITED"]},
+    "source_kind": {"type": "string", "minLength": 1},
+    "proper_noun": {"type": "boolean"},
+    "source_position_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+    "conversion_segments_size": {"type": "integer", "minimum": 1},
+    "split": {"enum": ["train", "validation", "final_test"]},
+    "sampling_identity": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "context_builder": {"const": "runtime_preceding_text_plus_conversion_top1-v1"},
+    "context_retry_count": {"type": "integer", "minimum": 0},
+    "context_retry_failures": {"type": "array"},
+    "candidates": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["surface", "rank", "cost", "cost_delta", "lid", "rid", "attributes", "category", "converted_segment_count", "protection"],
+        "properties": {
+          "surface": {"type": "string", "minLength": 1},
+          "rank": {"type": "integer", "minimum": 0},
+          "cost": {"type": "integer"},
+          "wcost": {"type": "integer"},
+          "cost_delta": {"type": "integer"},
+          "lid": {"type": "integer", "minimum": 0},
+          "rid": {"type": "integer", "minimum": 0},
+          "attributes": {"type": "integer", "minimum": 0},
+          "category": {"enum": ["DEFAULT", "SYMBOL", "OTHER"]},
+          "converted_segment_count": {"type": "integer", "minimum": 1},
+          "protection": {"enum": ["HARD_PROTECT", "DELTA_ONLY", "NORMAL"]}
+        }
+      }
+    }
+  }
+}

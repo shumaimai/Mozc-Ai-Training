@@ -27,7 +27,7 @@ from typing import Any
 
 from tools.dataset.jsonl import read_jsonl
 from tools.rerank.margin import metrics_at_tau
-from tools.rerank.train_cross_encoder import build_pair_text
+from tools.rerank.train_cross_encoder import build_pair_text, parse_eligibility_statuses
 
 
 def _parse_float_list(s: str) -> list[float]:
@@ -143,12 +143,26 @@ def score_texts(
     return scores
 
 
-def prepare_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def prepare_groups(
+    rows: list[dict[str, Any]],
+    *,
+    eligibility_statuses: set[str] | None = None,
+) -> list[dict[str, Any]]:
     groups: list[dict[str, Any]] = []
     for i, row in enumerate(rows):
+        if (
+            eligibility_statuses is not None
+            and row.get("eligibility_status") not in eligibility_statuses
+        ):
+            continue
         reading = row.get("reading") or ""
         gold = row.get("gold") or ""
-        nbest = [c for c in (row.get("mozc_nbest") or []) if c]
+        raw_nbest = row.get("mozc_nbest") or row.get("candidates") or []
+        nbest = [
+            c.get("surface") if isinstance(c, dict) else c
+            for c in raw_nbest
+        ]
+        nbest = [c for c in nbest if c]
         if not reading or not nbest:
             continue
         seen: set[str] = set()
@@ -158,6 +172,8 @@ def prepare_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 continue
             seen.add(c)
             cands.append(c)
+        # Dataset v2 has no separate mozc_top1 field. Rank 0 of the frozen
+        # candidate payload is Mozc top-1.
         mozc_top1 = row.get("mozc_top1") or cands[0]
         # Ensure Mozc top-1 is scoreable even if extractor omitted it.
         if mozc_top1 not in seen:
@@ -175,6 +191,7 @@ def prepare_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "gold_in_nbest": bool(gold in seen) if gold else False,
                 "source": row.get("source") or "",
                 "category": row.get("category") or "",
+                "eligibility_status": row.get("eligibility_status") or "",
             }
         )
     return groups
@@ -394,6 +411,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--latency-groups", type=int, default=100)
     p.add_argument("--limit", type=int, default=0, help="optional group cap")
     p.add_argument(
+        "--eligibility-status",
+        default="",
+        help="optional comma-separated eligibility_status allow-list",
+    )
+    p.add_argument(
         "--tau",
         type=float,
         default=0.0,
@@ -429,14 +451,24 @@ def main(argv: list[str] | None = None) -> int:
         print("device=cpu (latency path)", flush=True)
 
     rows = list(read_jsonl(Path(args.data)))
-    groups = prepare_groups(rows)
+    eligibility_statuses = parse_eligibility_statuses(args.eligibility_status)
+    groups = prepare_groups(rows, eligibility_statuses=eligibility_statuses)
     groups = cap_groups(groups, int(args.cand_cap))
     if args.limit and args.limit > 0:
         groups = groups[: args.limit]
     if args.latency_only:
         groups = groups[: max(1, args.latency_groups)]
+    if not groups:
+        raise SystemExit(
+            "evaluation produced 0 groups; refusing a zero-metric success "
+            f"(rows={len(rows)} eligibility={sorted(eligibility_statuses or ()) or ['ALL']})"
+        )
 
-    print(f"groups={len(groups)} loading {args.ckpt}", flush=True)
+    print(
+        f"groups={len(groups)} eligibility_status="
+        f"{sorted(eligibility_statuses or ()) or ['ALL']} loading {args.ckpt}",
+        flush=True,
+    )
     tokenizer, model, base, use_amp = load_model(
         Path(args.ckpt), args.device, args.fp16
     )
