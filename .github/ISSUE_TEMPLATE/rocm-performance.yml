@@ -1,0 +1,32 @@
+name: ROCm performance result
+description: Submit comparable Torch versus HIP measurements on Radeon
+title: "[ROCm performance] "
+labels: ["performance", "rocm"]
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: GPU, driver, power, and software environment
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Measurement method
+      description: Warm-up count, measured iterations, tensor shapes, dtype, forward-only or forward/backward, concurrent load, and thermal state
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Torch and HIP results
+      description: Report distribution statistics, peak VRAM, and build identity rather than one timing sample.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: No private data, model files, checkpoints, adapters, or credentials are attached.
+          required: true

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -62,13 +62,3 @@ jobs:
                   raise SystemExit(f"privacy gate accepted: {value}")
           print("cloud privacy audit passed")
           PY
-
-      - name: Publish training sources v1.0.0
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.0
-          name: Mozc AI Training v1.0.0
-          body_path: docs/RELEASE_NOTES_V1.0.0.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,78 @@
+name: ROCm source validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile ROCm Python sources
+        run: |
+          python -m compileall -q tools/train \
+            scripts/probe_bnb_rocm.py scripts/probe_paged_optimizer_rocm.py \
+            scripts/test_plamo_fallback_math.py scripts/test_plamo_low_precision_oracle.py \
+            scripts/stress_qlora_memory.py scripts/plan_model_memory.py \
+            scripts/run_completion_gate.py scripts/create_native_rocm_bundle.py \
+            scripts/verify_native_rocm_bundle.py
+      - name: Validate launcher option wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("tools/train/lora_sft.py").read_text(encoding="utf-8")
+          launcher = Path("scripts/run_native_rocm_plamo.ps1").read_text(encoding="utf-8")
+          required = {
+              "--use-hip-kernels": "--use-hip-kernels",
+              "--use-experimental-hip-ssd": "--use-experimental-hip-ssd",
+              "--activation-offload": "--activation-offload",
+              "--load-in-4bit": "--load-in-4bit",
+          }
+          for parser_flag, launcher_flag in required.items():
+              assert parser_flag in source, parser_flag
+              assert launcher_flag in launcher, launcher_flag
+          PY
+      - name: Publication safety
+        run: |
+          python - <<'PY'
+          import subprocess
+          tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          forbidden = ("artifacts/", "data/private/", ".config/vastai/", "checkpoint-")
+          suffixes = (".pyd", ".pt", ".bin", ".safetensors", ".lib", ".exp")
+          bad = [p for p in tracked if p.startswith(forbidden) or p.endswith(suffixes)]
+          if bad:
+              raise SystemExit(f"generated/private files tracked: {bad}")
+          PY
+      - name: Reject unsafe allocator setting
+        run: |
+          if git grep -n -E 'PYTORCH_(CUDA|HIP|ALLOC)_CONF=.*expandable_segments' -- ':!docs/**'; then
+            exit 1
+          fi
+
+  powershell-source:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse maintained ROCm PowerShell
+        shell: pwsh
+        run: |
+          $scripts = Get-ChildItem scripts -Filter *.ps1 | Where-Object {
+            $_.Name -match 'native_rocm|plamo_ssd|completion_gate|vastai_amd|artifacts'
+          }
+          foreach ($script in $scripts) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $script.FullName, [ref]$null, [ref]$errors
+            )
+            if ($errors.Count) { throw "$($script.Name): $errors" }
+          }

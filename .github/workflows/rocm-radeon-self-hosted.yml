@@ -1,0 +1,36 @@
+name: Radeon self-hosted validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_model:
+        description: Run the PLaMo checkpoint-resume gate
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, windows, rocm, radeon]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run synthetic GPU acceptance
+        shell: pwsh
+        run: |
+          if ('${{ inputs.include_model }}' -eq 'true') {
+            .\scripts\run_completion_gate.ps1 -IncludeModel
+          } else {
+            .\scripts\run_completion_gate.ps1
+          }
+      - name: Upload sanitized report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocm-validation-${{ runner.name }}
+          path: artifacts/native-rocm-completion-report.json
+          if-no-files-found: warn
+          retention-days: 7

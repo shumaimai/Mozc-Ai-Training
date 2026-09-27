@@ -266,7 +266,8 @@ def command_train(args: argparse.Namespace) -> int:
         # Keep params in fp32; AMP handles compute dtype.
         print(f"model_loaded vram={_vram_mb()}", flush=True)
 
-    pin = device == "cuda"
+    # Pinned-memory and worker teardown paths remain unreliable on native Windows ROCm.
+    pin = device == "cuda" and os.name != "nt"
     train_loader = DataLoader(
         PairDataset(train_pairs, tokenizer, args.max_len),
         batch_size=args.batch_size,
@@ -275,12 +276,7 @@ def command_train(args: argparse.Namespace) -> int:
         pin_memory=pin,
         persistent_workers=args.num_workers > 0,
     )
-    try:
-        # fused AdamW has been flaky on this ROCm build; prefer standard.
-        optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    except (TypeError, RuntimeError) as exc:
-        print(f"AdamW init failed ({exc}); retry", flush=True)
-        optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
     steps_per_epoch = max(1, len(train_loader))
     total_steps = max(1, steps_per_epoch * args.epochs)
     sched = get_linear_schedule_with_warmup(

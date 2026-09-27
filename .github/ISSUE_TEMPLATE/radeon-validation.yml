@@ -1,0 +1,65 @@
+name: Radeon validation result
+description: Report a successful or failed native ROCm validation on another AMD GPU
+title: "[ROCm validation] "
+labels: ["rocm", "radeon-validation"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not attach API keys, model/checkpoint files, adapters, or private training data."
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU model and VRAM
+      placeholder: Radeon RX 7900 XTX, 24 GiB
+    validations:
+      required: true
+  - type: input
+    id: arch
+    attributes:
+      label: GCN architecture
+      placeholder: gfx1100
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/build, driver, Python, PyTorch, HIP/ROCm, Transformers, PEFT, bitsandbytes
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit SHA and extension build identity
+    validations:
+      required: true
+  - type: dropdown
+    id: kernels
+    attributes:
+      label: Kernel configuration
+      options:
+        - Torch fallback
+        - HIP causal-conv + Torch SSD
+        - Experimental HIP SSD
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands executed
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Test results and first failure
+      description: Include health, NF4, optimizer resume, FP32 parity, FP16/BF16 oracle, and sanitized error output.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data and secrets
+      options:
+        - label: I did not attach API keys, model/checkpoint files, adapters, or private training data.
+          required: true

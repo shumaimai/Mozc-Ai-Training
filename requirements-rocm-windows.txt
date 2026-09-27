@@ -1,0 +1,13 @@
+# Install the matching AMD ROCm PyTorch wheel before this file. Do not install
+# PyPI torch over the AMD wheel.
+transformers>=4.48,<=4.57.1
+tokenizers>=0.21,<0.23
+datasets>=2.18
+peft>=0.11
+accelerate>=0.28
+safetensors>=0.4
+sentencepiece>=0.2
+tiktoken>=0.7
+protobuf>=4.25
+numba>=0.63
+bitsandbytes==0.50.1
