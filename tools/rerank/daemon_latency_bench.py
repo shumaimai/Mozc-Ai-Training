@@ -24,6 +24,7 @@ from tools.dataset.jsonl import read_jsonl
 def one_request(host: str, port: int, payload: dict, timeout_ms: int) -> tuple[bool, float, dict | None]:
     """New connection per request, mirroring C++ TcpExchange."""
     started = time.perf_counter()
+    deadline = started + timeout_ms / 1000.0
     sock = None
     try:
         sock = socket.create_connection((host, port), timeout=timeout_ms / 1000.0)
@@ -32,6 +33,10 @@ def one_request(host: str, port: int, payload: dict, timeout_ms: int) -> tuple[b
         sock.sendall((json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8"))
         buffer = bytearray()
         while True:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return False, (time.perf_counter() - started) * 1000.0, None
+            sock.settimeout(remaining)
             chunk = sock.recv(65536)
             if not chunk:
                 return False, (time.perf_counter() - started) * 1000.0, None
@@ -74,6 +79,7 @@ def main() -> int:
             "context_prev": row["context_prev"] or "",
             "nbest": candidates,
             "_gold": row["gold"],
+            "_hard_protect": row["candidates"][0].get("protection") == "HARD_PROTECT",
         })
     if args.limit > 0:
         requests = requests[: args.limit]
@@ -84,21 +90,33 @@ def main() -> int:
     for req in requests[: max(0, args.warmup)]:
         warm = dict(req)
         warm.pop("_gold", None)
+        warm.pop("_hard_protect", None)
         one_request(args.host, args.port, warm, args.timeout_ms)
 
     ok = fail = timeouts = skipped = overwritten = guard_skipped = mozc_final_hit = final_hit = 0
+    helped = hurt = 0
     roundtrip_ms: list[float] = []
+    scored_roundtrip_ms: list[float] = []
     daemon_ms: list[float] = []
     for i, req in enumerate(requests):
         gold = req.pop("_gold")
+        hard_protect = req.pop("_hard_protect")
+        mozc_top1 = req["nbest"][0]
+        mozc_hit = mozc_top1 == gold
+        mozc_final_hit += mozc_hit
         success, elapsed, response = one_request(args.host, args.port, req, args.timeout_ms)
+        roundtrip_ms.append(elapsed)
+        if success and (not isinstance(response, dict) or not response.get("ok")):
+            success = False
         if not success:
             fail += 1
+            # The actual IME retains Mozc on every timeout/failure. Excluding
+            # failed rows biases accuracy and truncates the slow latency tail.
+            final_hit += mozc_hit
             if elapsed >= args.timeout_ms:
                 timeouts += 1
             continue
         ok += 1
-        roundtrip_ms.append(elapsed)
         if isinstance(response, dict):
             daemon_ms.append(float(response.get("daemon_ms") or 0.0))
             if response.get("guard_skip"):
@@ -106,12 +124,15 @@ def main() -> int:
                 skipped += 1
             if response.get("overwritten"):
                 overwritten += 1
+            if not response.get("guard_skip"):
+                scored_roundtrip_ms.append(elapsed)
             final_top1 = response.get("final_top1")
-            mozc_top1 = req["nbest"][0]
-            if mozc_top1 == gold:
-                mozc_final_hit += 1
+            if hard_protect:
+                final_top1 = mozc_top1
             if final_top1 == gold:
                 final_hit += 1
+            helped += not mozc_hit and final_top1 == gold
+            hurt += mozc_hit and final_top1 != gold
         if (i + 1) % 1000 == 0:
             print(f"progress={i + 1}/{len(requests)} ok={ok} timeouts={timeouts}", flush=True)
 
@@ -142,6 +163,15 @@ def main() -> int:
             "mean": round(statistics.fmean(daemon_ms), 3) if daemon_ms else 0.0,
         },
         "guard_skipped": guard_skipped,
+        "scored_successful_roundtrip_ms": {
+            "n": len(scored_roundtrip_ms),
+            "p50": round(pct(scored_roundtrip_ms, .50), 3),
+            "p95": round(pct(scored_roundtrip_ms, .95), 3),
+            "p99": round(pct(scored_roundtrip_ms, .99), 3),
+            "note": "successful scored requests only; failures remain in overall latency and accuracy",
+        },
+        "helped": helped,
+        "hurt": hurt,
         "overwritten": overwritten,
         "mozc_hit1": round(mozc_final_hit / len(requests), 6) if requests else 0.0,
         "daemon_final_hit1": round(final_hit / len(requests), 6) if requests else 0.0,
