@@ -104,3 +104,26 @@ use the sibling `../Mozc-Ai` checkout by default; set `MOZCAI_RUNTIME_ROOT`
 to another checkout root when needed. CI checks out the paired public runtime
 commit and installs only CPU test dependencies. Candidate preparation contract
 tests need no model, GPU or torch import.
+
+## Review follow-up (2026-10-01)
+
+The paired runtime now discards unknown diagnostic string values at the logging
+boundary, reads numeric policy tokens correctly (including the shipped tau=1.5),
+and verifies the installed ONNX hash against both ping and scored responses.
+The same identity check is also enforced after MSI extraction in release CI.
+
+`test_cpp_review_contract.py` compiles the actual diagnostic and guard modules,
+file reader, JSON helpers and `LoadPolicyFile` with the real Abseil library.
+Only the Mozc class shell and LOG macro are isolated from the full Mozc build.
+Nine tests cover response text/control characters, known and unknown reason
+codes, null values, shipped policy values, whitespace/scientific numbers and
+fallback defaults. The original reviewed commit fails the tau and privacy
+regressions; the repaired CPU suite passes all 62 reranker and 14 dataset tests.
+Install `g++`, `pkg-config` and `libabsl-dev` before running these C++ tests.
+
+`test_windows_smoke.ps1` parses the actual runtime smoke and loads only its
+SHA validator. Eight cases cover matching hashes, either response identifying
+another model, both responses agreeing on another model, missing/malformed
+hashes and hex case. CI runs this on Windows PowerShell and PowerShell 7 without
+installing an IME or downloading the model. Full MSI/IME validation remains
+separate from these contract tests.
