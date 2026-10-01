@@ -21,6 +21,7 @@ from typing import Any
 from tools.dataset.jsonl import read_jsonl
 from tools.rerank.eval_cross_encoder import cap_groups, prepare_groups
 from tools.rerank.train_cross_encoder import build_pair_text, parse_eligibility_statuses
+from tools.rerank.context_clip import clean_context
 
 
 def sp_tokenize(sp_model_path: Path, text: str, max_len: int) -> list[int]:
@@ -43,6 +44,9 @@ def main() -> int:
     parser.add_argument("--max-len", type=int, default=128)
     parser.add_argument("--eligibility-status", default="")
     parser.add_argument("--cand-cap", type=int, default=30)
+    parser.add_argument("--tau", type=float, default=2.5)
+    parser.add_argument("--runtime-context", action="store_true")
+    parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()
 
     import numpy as np
@@ -50,12 +54,16 @@ def main() -> int:
     import onnxruntime as ort
     from torch import nn
     from transformers import AutoModel, AutoTokenizer
+    torch.set_num_threads(max(1,args.threads))
 
     rows = list(read_jsonl(Path(args.data)))
     groups = cap_groups(
         prepare_groups(rows, eligibility_statuses=parse_eligibility_statuses(args.eligibility_status)),
         args.cand_cap,
     )[: args.groups]
+    if args.runtime_context:
+        for g in groups:
+            g["context_prev"] = clean_context(g["context_prev"])
     texts: list[str] = []
     for g in groups:
         for cand in g["candidates"]:
@@ -109,6 +117,11 @@ def main() -> int:
             return self.score(out.last_hidden_state[:, 0]).squeeze(-1)
 
     model = CrossEncoder(blob["base_model"])
+    if blob.get("layer_indices"):
+        indices = blob["layer_indices"]
+        model.encoder.layers = nn.ModuleList([model.encoder.layers[i] for i in indices])
+        model.encoder.config.num_hidden_layers = len(indices)
+    model.encoder.config.reference_compile = False
     model.load_state_dict(blob["model"], strict=True)
     model.eval()
     torch_scores: list[float] = []
@@ -148,7 +161,7 @@ def main() -> int:
         per_group["n"] += 1
         if max(range(k), key=lambda j: t[j]) == max(range(k), key=lambda j: o[j]):
             per_group["argmax_agree"] += 1
-        tau = 2.5
+        tau = args.tau
         mozc_top1 = g["mozc_top1"]
 
         def final(scores: list[float]) -> str:
@@ -166,6 +179,9 @@ def main() -> int:
         "groups": per_group["n"],
         "group_argmax_agree": per_group["argmax_agree"],
         "group_tau25_final_agree": per_group["tau25_final_agree"],
+        "group_policy_final_agree": per_group["tau25_final_agree"],
+        "tau": args.tau,
+        "runtime_context": args.runtime_context,
         "torch_version": torch.__version__,
     }
     print("SCORE_PARITY", json.dumps(score_report), flush=True)
@@ -175,6 +191,12 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"DONE wrote {out}", flush=True)
+    # Export/tokenization drift must fail a pipeline, rather than only being
+    # visible in a report that a launcher can accidentally ignore.
+    if token_mismatch or per_group["argmax_agree"] != len(groups) or per_group["tau25_final_agree"] != len(groups):
+        return 2
+    if max(diffs) > 1e-3:
+        return 2
     return 0
 
 

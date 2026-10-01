@@ -1,0 +1,38 @@
+{
+  "daemon": {
+    "host": "127.0.0.1",
+    "port": 17891,
+    "timeout_ms": 200
+  },
+  "requests": 5974,
+  "ok": 5691,
+  "failed": 283,
+  "timeouts": 283,
+  "timeout_rate": 0.04737194509541346,
+  "roundtrip_ms": {
+    "p50": 33.509,
+    "p95": 187.377,
+    "p99": 202.729,
+    "max": 208.012,
+    "mean": 50.361
+  },
+  "daemon_ms": {
+    "p50": 29.351,
+    "p95": 132.56,
+    "p99": 169.306,
+    "mean": 41.995
+  },
+  "guard_skipped": 1610,
+  "scored_successful_roundtrip_ms": {
+    "n": 4081,
+    "p50": 47.44,
+    "p95": 140.355,
+    "p99": 177.496,
+    "note": "successful scored requests only; failures remain in overall latency and accuracy"
+  },
+  "helped": 145,
+  "hurt": 42,
+  "overwritten": 309,
+  "mozc_hit1": 0.745899,
+  "daemon_final_hit1": 0.76314
+}

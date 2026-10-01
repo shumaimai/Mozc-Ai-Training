@@ -1,0 +1,15 @@
+{
+  "phase": "2-modernbert-ja-30m-baseline",
+  "dataset_contract": "phase1-runtime-context-parity-v1",
+  "model": "sbintuitions/modernbert-ja-30m",
+  "train_path": "data/contextual_ranking_v2_production_runtime_context/dataset/train.jsonl.gz",
+  "validation_path": "data/contextual_ranking_v2_production_runtime_context/dataset/validation.jsonl.gz",
+  "final_test_mounted": false,
+  "training_eligibility_status": "NEURAL_ELIGIBLE",
+  "require_gold_in_nbest": true,
+  "candidate_cap": 30,
+  "epochs": 2,
+  "batch_size": 256,
+  "max_len": 128,
+  "gpu": "L4"
+}

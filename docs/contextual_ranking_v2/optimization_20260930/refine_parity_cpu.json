@@ -1,0 +1,24 @@
+{
+  "token_parity": {
+    "texts": 9158,
+    "hf_vs_sp_exact_match": 9158,
+    "hf_vs_sp_mismatch": 0,
+    "mismatch_excluding_truncated_texts": 0,
+    "exact_match_rate": 1.0,
+    "texts_exceeding_sp_truncation_window": 0,
+    "max_sp_sequence_len": 61,
+    "max_len": 128
+  },
+  "score_parity": {
+    "n_texts": 9158,
+    "max_abs_diff": 2.1219253540039062e-05,
+    "mean_abs_diff": 3.25821992559031e-06,
+    "p99_abs_diff": 1.0967254638671875e-05,
+    "groups": 800,
+    "group_argmax_agree": 800,
+    "group_tau25_final_agree": 800,
+    "tau": 1.5,
+    "runtime_context": true,
+    "torch_version": "2.14.0+cpu"
+  }
+}

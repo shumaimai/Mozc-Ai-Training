@@ -1,0 +1,27 @@
+{
+  "base_model": "sbintuitions/modernbert-ja-30m",
+  "train_path": "data/contextual_ranking_v2_production_runtime_context/dataset/train.jsonl.gz",
+  "eval_path": "data/contextual_ranking_v2_production_runtime_context/dataset/validation.jsonl.gz",
+  "train_groups": 47589,
+  "train_pairs": 284957,
+  "eval_groups": 5974,
+  "eval_pairs": 36061,
+  "epochs": 2,
+  "batch_size": 256,
+  "max_len": 128,
+  "max_neg": 15,
+  "fp16": true,
+  "require_gold_in_nbest": true,
+  "eligibility_status": "NEURAL_ELIGIBLE",
+  "device": "cuda",
+  "vram_peak": {
+    "allocated_mb": 576.8,
+    "reserved_mb": 1620.0,
+    "max_allocated_mb": 1408.6
+  },
+  "elapsed_s": 659.2,
+  "init_ckpt": "",
+  "save_every": 200,
+  "resumed_from": "",
+  "complete": true
+}

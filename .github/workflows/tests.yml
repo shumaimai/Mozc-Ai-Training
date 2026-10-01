@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, v2/contextual-ranking-reset]
   workflow_dispatch:
 
 permissions:
@@ -14,13 +14,32 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      MOZCAI_RUNTIME_ROOT: ${{ github.workspace }}/runtime-contract
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout paired runtime contract
+        uses: actions/checkout@v4
+        with:
+          repository: shumaimai/Mozc-Ai
+          ref: d94d48f755f24bcdbb6e01983f9ed9989c09f9ec
+          path: runtime-contract
+          lfs: false
+          persist-credentials: false
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install CPU runtime test dependencies
+        run: python -m pip install numpy==2.3.2 onnxruntime==1.30.0 sentencepiece==0.2.2
+
+      - name: Install C++ contract test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends g++ pkg-config libabsl-dev
 
       - name: Compile Python sources
         run: |
@@ -75,3 +94,25 @@ jobs:
           body_path: docs/RELEASE_NOTES_V1.0.0.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  windows-smoke-contract:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      MOZCAI_RUNTIME_ROOT: ${{ github.workspace }}/runtime-contract
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout paired runtime contract
+        uses: actions/checkout@v4
+        with:
+          repository: shumaimai/Mozc-Ai
+          ref: d94d48f755f24bcdbb6e01983f9ed9989c09f9ec
+          path: runtime-contract
+          lfs: false
+          persist-credentials: false
+      - name: Check smoke model identity on Windows PowerShell
+        shell: powershell
+        run: ./tools/rerank/test_windows_smoke.ps1 -RuntimeRoot $env:MOZCAI_RUNTIME_ROOT
+      - name: Check smoke model identity on PowerShell 7
+        shell: pwsh
+        run: ./tools/rerank/test_windows_smoke.ps1 -RuntimeRoot $env:MOZCAI_RUNTIME_ROOT

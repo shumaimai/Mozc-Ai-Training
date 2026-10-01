@@ -54,6 +54,11 @@ def main() -> int:
             return self.score(cls).squeeze(-1)
 
     model = CrossEncoder(base)
+    if blob.get("layer_indices"):
+        indices = blob["layer_indices"]
+        model.encoder.layers = nn.ModuleList([model.encoder.layers[i] for i in indices])
+        model.encoder.config.num_hidden_layers = len(indices)
+    model.encoder.config.reference_compile = False
     model.load_state_dict(blob["model"], strict=True)
     model.eval()
 
@@ -85,6 +90,7 @@ def main() -> int:
         "ckpt": str(Path(args.ckpt).resolve()),
         "ckpt_sha256": sha256_file(Path(args.ckpt)),
         "ckpt_step": blob.get("step"),
+        "layer_indices": blob.get("layer_indices"),
         "onnx": str(out_path.resolve()),
         "onnx_sha256": sha256_file(out_path),
         "opset": args.opset,
