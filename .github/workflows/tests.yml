@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: shumaimai/Mozc-Ai
-          ref: 255d8dc3d5af8317f86cea215e1011b38874b7b3
+          ref: d94d48f755f24bcdbb6e01983f9ed9989c09f9ec
           path: runtime-contract
           lfs: false
           persist-credentials: false
@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: shumaimai/Mozc-Ai
-          ref: 255d8dc3d5af8317f86cea215e1011b38874b7b3
+          ref: d94d48f755f24bcdbb6e01983f9ed9989c09f9ec
           path: runtime-contract
           lfs: false
           persist-credentials: false

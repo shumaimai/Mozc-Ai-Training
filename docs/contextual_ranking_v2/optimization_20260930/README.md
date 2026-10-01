@@ -127,3 +127,6 @@ another model, both responses agreeing on another model, missing/malformed
 hashes and hex case. CI runs this on Windows PowerShell and PowerShell 7 without
 installing an IME or downloading the model. Full MSI/IME validation remains
 separate from these contract tests.
+The full-script parse also caught Windows PowerShell 5.1 misreading the existing
+UTF-8 Japanese literals; the runtime smoke now carries a UTF-8 BOM so direct
+`powershell -File` execution uses the correct encoding.
